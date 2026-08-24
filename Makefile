@@ -1,5 +1,6 @@
 PYTHON ?= python3
 ZIG ?= zig
+ANSIBLE ?= ansible
 ANSIBLE_PLAYBOOK ?= ansible-playbook
 INVENTORY ?= ansible/inventory.yml
 ANSIBLE_ARGS ?=
@@ -44,6 +45,9 @@ check-updates:
 deploy: prepare
 	@test -f "$(INVENTORY)" || (echo "Missing $(INVENTORY); copy ansible/inventory.example.yml first" >&2; exit 2)
 	$(ANSIBLE_PLAYBOOK) -i "$(INVENTORY)" ansible/deploy.yml $(ANSIBLE_ARGS)
+ping:
+	@test -f "$(INVENTORY)" || (echo "Missing $(INVENTORY); copy ansible/inventory.example.yml first" >&2; exit 2)
+	$(ANSIBLE) windows -m ansible.windows.win_ping -i "$(INVENTORY)" $(ANSIBLE_ARGS)
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v

@@ -1,0 +1,27 @@
+#- name: Load manifest data
+#  ansible.builtin.include_vars:
+#    file: "{{ manifest_file }}"
+#    name: manifest
+- name: Create a controller-side temp file for the extracted tasks
+  ansible.builtin.tempfile:
+    suffix: "_{{ manifest.name }}_tasks.yml"
+  delegate_to: localhost
+  run_once: true
+  register: tmp_task_file
+
+- name: Dump manifest's tasks section back to disk as a real task file
+  ansible.builtin.copy:
+    dest: "{{ tmp_task_file.path }}"
+    content: "{{ manifest.tasks | to_nice_yaml }}"
+  delegate_to: localhost
+  run_once: true
+
+- name: Run the app's install tasks (dynamic include, resolved at runtime)
+  ansible.builtin.include_tasks: "{{ tmp_task_file.path }}"
+
+- name: Clean up the temp task file
+  ansible.builtin.file:
+    path: "{{ tmp_task_file.path }}"
+    state: absent
+  delegate_to: localhost
+  run_once: true

@@ -1,0 +1,32 @@
+---
+# https://github.com/ansible-collections/ansible.windows/blob/main/plugins/modules/win_service.py
+#- name: Stop and Disable the WLMS service
+#  ansible.windows.win_service:
+#    name: WLMS
+#    state: stopped
+#    start_mode: disabled
+#  become: yes
+#  become_method: runas
+#  become_user: System
+- name: Stop and Disable the WLMS service
+  ansible.windows.win_service:
+    name: WLMS
+    state: stopped
+    start_mode: auto
+  become: yes
+  become_method: runas
+  become_user: System
+# Working alternate:
+#- name: Verify if Ansible is running as System user
+#  ansible.windows.win_shell: |
+#    $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
+#    Write-Output "Current User: $($currentUser.Name)"
+#    Write-Output "User SID: $($currentUser.User)"
+#    Set-Service -Name "WLMS" -StartupType Disabled
+#  become: yes
+#  become_method: runas
+#  become_user: System
+#  register: user_check  # <--- This captures the output
+#- name: Print the user identity
+#  ansible.builtin.debug:
+#    var: user_check.stdout_lines # <--- This prints the output as a list

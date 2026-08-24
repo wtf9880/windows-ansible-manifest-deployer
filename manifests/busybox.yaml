@@ -10,10 +10,18 @@ locked:
   version: FRP-6075-g169694ebd
   url: https://frippery.org/files/busybox/busybox64u.exe
   sha256: 6e263d154d8548d1eb936f65d1d8312c80df31c45974e48d6335e4dcc0f4f34c
-deploy:
-  type: copy
-  destination: 'C:\Tools\BusyBox'
-  target_filename: busybox.exe
-  path: 'C:\Tools\BusyBox'
-  add_to_path: true
-
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\CLI"
+      state: directory
+  - name: Push the file to target device
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/busybox.exe"
+      dest: "C:\\Tools\\CLI\\busybox.exe"
+  - name: Add Busybox to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\CLI"
+      #scope: machine
+      #state: present

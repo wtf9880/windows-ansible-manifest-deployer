@@ -1,0 +1,19 @@
+schema: 1
+name: rustdesk
+cache_filename: rustdesk-installer.exe
+source:
+  kind: github_release
+  repo: rustdesk/rustdesk
+  tag_regex: '^\d+\.\d+\.\d+$'
+  asset_regex: '^rustdesk-\d+\.\d+\.\d+-x86_64\.exe$'
+  include_prereleases: false
+locked:
+  version: 1.4.9
+  url: https://github.com/rustdesk/rustdesk/releases/download/1.4.9/rustdesk-1.4.9-x86_64.exe
+  sha256: eaedeb0088e687bf46f7c46a9c6ea5493ce51f3134dfd6acbedb47b5b9136274
+deploy:
+  type: installer
+  arguments: --silent-install
+  creates_path: 'C:\Program Files\RustDesk\RustDesk.exe'
+  add_to_path: false
+

@@ -1,0 +1,7 @@
+/Cache/*
+!/Cache/.gitkeep
+/ansible/inventory.*
+/.venv/
+/__pycache__/
+*.pyc
+/ToMerge/

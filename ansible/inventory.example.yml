@@ -1,0 +1,14 @@
+---
+all:
+  hosts:
+    windows-target:
+      ansible_host: 192.0.2.10
+  vars:
+    ansible_user: Administrator
+    ansible_password: "{{ lookup('ansible.builtin.env', 'ANSIBLE_PASSWORD') }}"
+    ansible_connection: winrm
+    ansible_port: 5986
+    ansible_winrm_scheme: https
+    ansible_winrm_transport: ntlm
+    ansible_winrm_server_cert_validation: ignore
+

@@ -1,0 +1,19 @@
+schema: 1
+name: winsw-v2
+cache_filename: winsw-v2.exe
+source:
+  kind: github_release
+  repo: winsw/winsw
+  tag_regex: '^v2\..+$'
+  asset_regex: '^WinSW-x64\.exe$'
+  include_prereleases: false
+locked:
+  version: v2.12.0
+  url: https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe
+  sha256: 05b82d46ad331cc16bdc00de5c6332c1ef818df8ceefcd49c726553209b3a0da
+deploy:
+  type: copy
+  destination: 'C:\Tools\WinSW\v2'
+  target_filename: winsw.exe
+  path: 'C:\Tools\WinSW\v2'
+  add_to_path: false

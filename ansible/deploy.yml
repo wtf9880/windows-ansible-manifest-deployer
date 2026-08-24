@@ -1,0 +1,139 @@
+---
+- name: Deploy pinned Windows tools
+  hosts: all
+  gather_facts: false
+  vars:
+    local_cache: "{{ playbook_dir }}/../Cache"
+    remote_root: 'C:\ProgramData\manifest-deployer'
+    remote_cache: '{{ remote_root }}\cache'
+    remote_state: '{{ remote_root }}\state'
+    manifest_paths: "{{ query('ansible.builtin.fileglob', playbook_dir + '/../manifests/*.yaml') }}"
+
+  pre_tasks:
+    - name: Load deployment manifests
+      ansible.builtin.set_fact:
+        app_manifests: >-
+          {{ (app_manifests | default([])) +
+             [(lookup('ansible.builtin.file', item) | from_yaml)] }}
+      loop: "{{ manifest_paths }}"
+      no_log: true
+
+    - name: Ensure controller prepared all artifacts
+      ansible.builtin.stat:
+        path: "{{ local_cache }}/{{ item.cache_filename }}"
+      loop: "{{ app_manifests }}"
+      loop_control:
+        label: "{{ item.name }}"
+      delegate_to: localhost
+      register: prepared_artifacts
+      failed_when: not prepared_artifacts.stat.exists
+
+    - name: Ensure remote working directories exist
+      ansible.windows.win_file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ remote_cache }}"
+        - "{{ remote_state }}"
+
+    - name: Stage pinned artifacts on the target
+      ansible.windows.win_copy:
+        src: "{{ local_cache }}/{{ item.cache_filename }}"
+        dest: "{{ remote_cache }}\\{{ item.cache_filename }}"
+      loop: "{{ app_manifests }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+  tasks:
+    - name: Install portable zip applications
+      ansible.windows.win_powershell:
+        script: |
+          param($Archive, $Destination, $Version, $Marker, $StripSingleRoot)
+          if ((Test-Path -LiteralPath $Marker) -and
+              ((Get-Content -LiteralPath $Marker -Raw).Trim() -eq $Version)) {
+            $Ansible.Changed = $false
+            return
+          }
+          $stage = Join-Path $env:TEMP ([guid]::NewGuid().ToString())
+          try {
+            New-Item -ItemType Directory -Path $stage -Force | Out-Null
+            Expand-Archive -LiteralPath $Archive -DestinationPath $stage -Force
+            if (Test-Path -LiteralPath $Destination) {
+              Remove-Item -LiteralPath $Destination -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+            $children = @(Get-ChildItem -LiteralPath $stage -Force)
+            if ($StripSingleRoot -and $children.Count -eq 1 -and $children[0].PSIsContainer) {
+              Copy-Item -Path (Join-Path $children[0].FullName '*') -Destination $Destination -Recurse -Force
+            } else {
+              Copy-Item -Path (Join-Path $stage '*') -Destination $Destination -Recurse -Force
+            }
+            Set-Content -LiteralPath $Marker -Value $Version -NoNewline
+          } finally {
+            Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+          }
+        parameters:
+          Archive: "{{ remote_cache }}\\{{ item.cache_filename }}"
+          Destination: "{{ item.deploy.destination }}"
+          Version: "{{ item.locked.version }}"
+          Marker: "{{ remote_state }}\\{{ item.name }}.version"
+          StripSingleRoot: "{{ item.deploy.strip_single_root | bool }}"
+      loop: "{{ app_manifests | selectattr('deploy.type', 'equalto', 'portable_zip') }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Ensure standalone application directories exist
+      ansible.windows.win_file:
+        path: "{{ item.deploy.destination }}"
+        state: directory
+      loop: "{{ app_manifests | selectattr('deploy.type', 'equalto', 'copy') }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Install standalone executables
+      ansible.windows.win_copy:
+        src: "{{ remote_cache }}\\{{ item.cache_filename }}"
+        dest: "{{ item.deploy.destination }}\\{{ item.deploy.target_filename }}"
+        remote_src: true
+      loop: "{{ app_manifests | selectattr('deploy.type', 'equalto', 'copy') }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Install native installer packages
+      ansible.windows.win_package:
+        path: "{{ remote_cache }}\\{{ item.cache_filename }}"
+        arguments: "{{ item.deploy.arguments }}"
+        creates_path: "{{ item.deploy.creates_path }}"
+        state: present
+      loop: "{{ app_manifests | selectattr('deploy.type', 'equalto', 'installer') }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Add portable tools to the machine PATH
+      ansible.windows.win_path:
+        elements:
+          - "{{ item.deploy.path }}"
+        scope: machine
+        state: present
+      loop: "{{ app_manifests }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when: item.deploy.add_to_path | default(false) | bool
+
+    - name: Ensure custom utility directory exists
+      ansible.windows.win_file:
+        path: 'C:\Tools\hello'
+        state: directory
+
+    - name: Deploy cross-compiled custom utility
+      ansible.windows.win_copy:
+        src: "{{ local_cache }}/hello.exe"
+        dest: 'C:\Tools\hello\hello.exe'
+
+    - name: Add custom utility to the machine PATH
+      ansible.windows.win_path:
+        elements:
+          - 'C:\Tools\hello'
+        scope: machine
+        state: present
+

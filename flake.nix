@@ -23,6 +23,7 @@
               python3Packages.pyyaml
               zig
               mono
+              unzip
             ];
           };
         }

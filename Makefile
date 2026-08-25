@@ -10,7 +10,12 @@ CXXFLAGS ?= -O2 -s
 SRC_SOURCES := $(wildcard src/*.cpp src/*.c src/*.cs)
 SRC_BINARIES := $(patsubst src/%.cpp,Cache/%.exe,$(wildcard src/*.cpp)) $(patsubst src/%.c,Cache/%.exe,$(wildcard src/*.c)) $(patsubst src/%.cs,Cache/%.exe,$(wildcard src/*.cs))
 
-.PHONY: all prepare download compile verify update check-updates deploy test clean
+.PHONY: all prepare download compile verify update check-updates deploy ping test clean
+
+ifneq ($(filter update check-updates verify,$(MAKECMDGOALS)),)
+%:
+	@:
+endif
 
 all: prepare
 
@@ -34,13 +39,13 @@ Cache:
 compile: $(SRC_BINARIES)
 
 verify:
-	$(PYTHON) tools/prepare.py --verify-only
+	$(PYTHON) tools/prepare.py --verify-only $(foreach name,$(filter-out $@,$(MAKECMDGOALS)),--only $(name))
 
 update:
-	$(PYTHON) tools/update_manifests.py
+	$(PYTHON) tools/update_manifests.py $(foreach name,$(filter-out $@,$(MAKECMDGOALS)),--only $(name))
 
 check-updates:
-	$(PYTHON) tools/update_manifests.py --check
+	$(PYTHON) tools/update_manifests.py --check $(foreach name,$(filter-out $@,$(MAKECMDGOALS)),--only $(name))
 
 deploy: prepare
 	@test -f "$(INVENTORY)" || (echo "Missing $(INVENTORY); copy ansible/inventory.example.yaml first" >&2; exit 2)

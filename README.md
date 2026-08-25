@@ -21,11 +21,12 @@ ansible-galaxy collection install -r requirements.yaml
 ## Commands
 
 ```sh
-make prepare       # download pinned artifacts and build cpp/*.cpp for Windows x86-64
-make verify        # hash every currently prepared artifact; never downloads
-make update        # explicitly discover updates and rewrite manifest locks
-make check-updates # report updates without changing files; nonzero if any exist
+make prepare       # download pinned artifacts and build compilable files src/* for Windows x86-64
+make verify        # hash every currently prepared artifact; never downloads (accepts optional manifest names/paths)
+make update        # explicitly discover updates and rewrite manifest locks (accepts optional manifest names/paths)
+make check-updates # report updates without changing files; nonzero if any exist (accepts optional manifest names/paths)
 make test
+make ping
 make deploy
 ```
 

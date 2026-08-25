@@ -86,12 +86,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Download exactly the artifacts pinned in manifests")
     parser.add_argument("--manifests", type=Path, default=Path("manifests"))
     parser.add_argument("--cache", type=Path, default=Path("Cache"))
+    parser.add_argument("names", nargs="*", metavar="manifest", help="manifest stem or filename (repeatable)")
     parser.add_argument("--only", action="append", default=[], help="manifest stem or filename")
     parser.add_argument("--verify-only", action="store_true")
     args = parser.parse_args()
 
     try:
-        paths = selected_paths(args.manifests, args.only)
+        paths = selected_paths(args.manifests, [*args.names, *args.only])
         if not paths:
             raise ManifestError(f"no manifests found in {args.manifests}")
         args.cache.mkdir(parents=True, exist_ok=True)

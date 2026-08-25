@@ -1,0 +1,26 @@
+schema: 1
+name: notepad-plus-plus
+cache_filename: notepad-plus-plus.zip
+source:
+  kind: github_release
+  repo: notepad-plus-plus/notepad-plus-plus
+  tag_regex: '^v\d+\.\d+\.\d+$'
+  asset_regex: '^npp\.\d+\.\d+\.\d+\.portable\.x64\.zip$'
+  include_prereleases: false
+locked:
+  version: v8.9.7
+  url: https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.7/npp.8.9.7.portable.x64.zip
+  sha256: ff394c496ecb5c8b231feca05387edbfb704e85db3ba956b994bbadbe7520806
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\Notepad++"
+      state: directory
+  - name: Unzip the file to target device
+    ansible.windows.win_unzip:
+      src: "{{ local_cache }}/notepad-plus-plus.zip"
+      dest: "C:\\Tools\\Notepad++"
+  - name: Add Notepad++ to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\Notepad++"

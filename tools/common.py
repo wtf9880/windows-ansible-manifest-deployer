@@ -20,7 +20,7 @@ def load_manifest(path: Path) -> dict[str, Any]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ManifestError(f"{path}: manifest must be a mapping")
-    required = ("schema", "name", "cache_filename", "source", "locked", "deploy")
+    required = ("schema", "name", "cache_filename", "source", "locked")
     missing = [key for key in required if key not in data]
     if missing:
         raise ManifestError(f"{path}: missing keys: {', '.join(missing)}")
@@ -75,6 +75,9 @@ def parse_checksum_list(text: str, filename: str) -> str:
 
 
 def selected_paths(directory: Path, only: Iterable[str]) -> list[Path]:
+    if directory.is_file():
+        return [directory] if not only or directory.stem in only or directory.name in only else []
+
     paths = sorted(directory.glob("*.yaml"))
     names = set(only)
     if not names:

@@ -1,0 +1,26 @@
+schema: 1
+name: aria2
+cache_filename: aria2-win-64bit.zip 
+source:
+  kind: github_release
+  repo: neovim/neovim
+  tag_regex: '^v0\.12\.\d+$'
+  asset_regex: '^nvim-win64\.zip$'
+  include_prereleases: false
+locked:
+  version: v0.12.4
+  url: https://github.com/neovim/neovim/releases/download/v0.12.4/nvim-win64.zip
+  sha256: 9fc3572829ffd13debb6e32555da2c8cc02555568260a9fc4cf1f65bbcca319c
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\Aria2"
+      state: directory
+  - name: Unzip the file to target device
+    ansible.windows.win_unzip:
+      src: "{{ local_cache }}/aria2-win-64bit.zip"
+      dest: "C:\\Tools\\Aria2"
+  - name: Add Aria2 to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\Aria2\\bin"

@@ -13,15 +13,13 @@ locked:
 tasks:
   - name: Create directory if it does not exist
     ansible.windows.win_file:
-      path: "C:\\Tools\\CLI"
+      path: "C:\\Tools\\BusyBox"
       state: directory
   - name: Push the file to target device
     ansible.windows.win_copy:
       src: "{{ local_cache }}/busybox.exe"
-      dest: "C:\\Tools\\CLI\\busybox.exe"
+      dest: "C:\\Tools\\BusyBox\\busybox.exe"
   - name: Add Busybox to PATH
     ansible.windows.win_path:
       elements:
-        - "C:\\Tools\\CLI"
-      #scope: machine
-      #state: present
+        - "C:\\Tools\\BusyBox"

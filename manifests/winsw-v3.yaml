@@ -1,0 +1,22 @@
+schema: 1
+name: winsw-v3
+cache_filename: winsw-v3.exe
+source:
+  kind: github_release
+  repo: winsw/winsw
+  tag_regex: '^v3\..+$'
+  asset_regex: '^WinSW-x64\.exe$'
+  include_prereleases: true
+locked:
+  version: v3.0.0-alpha.11
+  url: https://github.com/winsw/winsw/releases/download/v3.0.0-alpha.11/WinSW-x64.exe
+  sha256: a2daa6a33a9c2b791ae31d9092e7935c339d1e03e89bfb747618ce2f4e819e20
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\WinSW\\v3"
+      state: directory
+  - name: Push the file to target device
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/winsw-v3.exe"
+      dest: "C:\\Tools\\WinSW\\v3\\winsw.exe"

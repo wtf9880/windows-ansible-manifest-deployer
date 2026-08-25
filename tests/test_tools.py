@@ -6,7 +6,14 @@ from pathlib import Path
 
 import yaml
 
-from tools.common import ManifestError, load_manifest, parse_checksum_list
+from tools.common import ManifestError, load_manifest, parse_checksum_list, selected_paths
+
+TASK_KEYWORDS = {
+    "action", "args", "become", "become_user", "changed_when", "delegate_to",
+    "environment", "failed_when", "ignore_errors", "loop", "loop_control",
+    "name", "no_log", "notify", "register", "run_once", "tags", "vars",
+    "when", "with_items",
+}
 
 
 class CommonTests(unittest.TestCase):
@@ -22,7 +29,26 @@ class CommonTests(unittest.TestCase):
         for path in sorted(Path("manifests").glob("*.yaml")):
             with self.subTest(path=path):
                 manifest = load_manifest(path)
-                self.assertIn(manifest["deploy"]["type"], {"portable_zip", "copy", "installer"})
+                tasks = manifest.get("tasks")
+                self.assertIsInstance(tasks, list)
+                self.assertTrue(tasks, f"{path}: tasks must not be empty")
+                for index, task in enumerate(tasks):
+                    with self.subTest(task=index):
+                        self.assertIsInstance(task, dict)
+                        self.assertIn("name", task)
+                        module_keys = [key for key in task if key not in TASK_KEYWORDS]
+                        self.assertTrue(module_keys, f"{path}: task {index} defines no module")
+
+    def test_selected_paths_filters_by_stem_or_filename(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for stem in ("alpha", "beta"):
+                (root / f"{stem}.yaml").write_text("schema: 1\n", encoding="utf-8")
+            self.assertEqual([p.stem for p in selected_paths(root, [])], ["alpha", "beta"])
+            self.assertEqual([p.stem for p in selected_paths(root, ["alpha"])], ["alpha"])
+            self.assertEqual([p.stem for p in selected_paths(root, ["beta.yaml"])], ["beta"])
+            with self.assertRaises(ManifestError):
+                selected_paths(root, ["gamma"])
 
     def test_rejects_cache_path_traversal(self) -> None:
         manifest = {

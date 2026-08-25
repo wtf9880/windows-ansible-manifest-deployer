@@ -5,6 +5,7 @@
   vars:
     local_cache: "{{ playbook_dir }}/../Cache"
     local_extract_dir: "{{ playbook_dir }}/../Cache/Extracted"
+    local_done_dir: "{{ playbook_dir }}/../Cache/Done"
     remote_root: 'C:\ProgramData\manifest-deployer'
     remote_cache: '{{ remote_root }}\cache'
     remote_state: '{{ remote_root }}\state'
@@ -14,6 +15,12 @@
     - name: Ensure local extract directory exists on the controller
       ansible.builtin.file:
         path: "{{ local_extract_dir }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+    - name: Ensure local done directory exists on the controller
+      ansible.builtin.file:
+        path: "{{ local_done_dir }}"
         state: directory
       delegate_to: localhost
       run_once: true
@@ -69,11 +76,20 @@
     #    loop: "{{ manifest_files.files | map(attribute='path') | list }}"
     #    loop_control:
     #      loop_var: manifest_file
+
+    - name: Check which manifests/apps are already configured/installed
+      ansible.builtin.find:
+        paths: "{{ local_done_dir }}"
+        patterns: "*.lock"
+      register: done_files
+      delegate_to: localhost
+      run_once: true
     - name: Install each app
       ansible.builtin.include_tasks: tasks/_install_from_manifest.yaml
       loop: "{{ app_manifests }}"
       loop_control:
         loop_var: manifest
+      when: (manifest.name + ".lock") not in done_files.files | map(attribute='path') | map('basename') | list
 
 
     #- name: Install portable zip applications

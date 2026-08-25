@@ -25,3 +25,11 @@
     state: absent
   delegate_to: localhost
   run_once: true
+
+- name: Mark manifest as done
+  ansible.builtin.file:
+    path: "{{ local_done_dir }}/{{ manifest.name }}.lock"
+    state: touch
+    mode: "0644"
+  delegate_to: localhost
+  run_once: true

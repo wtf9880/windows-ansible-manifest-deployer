@@ -1,5 +1,5 @@
 /Cache/*
-!/Cache/.gitkeep
+!/Cache/CACHEDIR.TAG
 /ansible/inventory.*
 /.venv/
 /__pycache__/

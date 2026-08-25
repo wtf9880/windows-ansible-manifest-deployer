@@ -13,8 +13,8 @@
 - name: Stop and Disable the WLMS service
   ansible.windows.win_service:
     name: WLMS
-    state: stopped
-    start_mode: auto
+    #state: stopped
+    start_mode: disabled
   become: yes
   become_method: runas
   become_user: System

@@ -66,6 +66,11 @@ def prepare_one(path: Path, cache: Path, verify_only: bool) -> bool:
         print(f"unchanged {manifest['name']}")
         return False
 
+    if artifact.is_file() and sha256_file(artifact) == expected:
+        print(f"unchanged {manifest['name']} (verified hash)")
+        write_state(state_path, current_manifest_hash, artifact)
+        return False
+
     temporary = artifact.with_name(f".{artifact.name}.part")
     temporary.unlink(missing_ok=True)
     print(f"download  {manifest['name']} {manifest['locked']['version']}")

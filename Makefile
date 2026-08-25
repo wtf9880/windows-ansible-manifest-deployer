@@ -2,7 +2,7 @@ PYTHON ?= python3
 ZIG ?= zig
 ANSIBLE ?= ansible
 ANSIBLE_PLAYBOOK ?= ansible-playbook
-INVENTORY ?= ansible/inventory.yml
+INVENTORY ?= ansible/inventory.yaml
 ANSIBLE_ARGS ?=
 ZIG_TARGET ?= x86_64-windows-gnu
 CXXFLAGS ?= -O2 -s
@@ -43,10 +43,10 @@ check-updates:
 	$(PYTHON) tools/update_manifests.py --check
 
 deploy: prepare
-	@test -f "$(INVENTORY)" || (echo "Missing $(INVENTORY); copy ansible/inventory.example.yml first" >&2; exit 2)
-	$(ANSIBLE_PLAYBOOK) -i "$(INVENTORY)" ansible/deploy.yml $(ANSIBLE_ARGS)
+	@test -f "$(INVENTORY)" || (echo "Missing $(INVENTORY); copy ansible/inventory.example.yaml first" >&2; exit 2)
+	$(ANSIBLE_PLAYBOOK) -i "$(INVENTORY)" ansible/deploy.yaml $(ANSIBLE_ARGS)
 ping:
-	@test -f "$(INVENTORY)" || (echo "Missing $(INVENTORY); copy ansible/inventory.example.yml first" >&2; exit 2)
+	@test -f "$(INVENTORY)" || (echo "Missing $(INVENTORY); copy ansible/inventory.example.yaml first" >&2; exit 2)
 	$(ANSIBLE) windows -m ansible.windows.win_ping -i "$(INVENTORY)" $(ANSIBLE_ARGS)
 
 test:

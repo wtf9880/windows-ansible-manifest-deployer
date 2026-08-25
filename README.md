@@ -15,7 +15,7 @@ The GNU/Linux control host needs Python 3, Make, Zig, and Ansible. Install the s
 
 ```sh
 python3 -m pip install -r requirements.txt
-ansible-galaxy collection install -r requirements.yml
+ansible-galaxy collection install -r requirements.yaml
 ```
 
 ## Commands
@@ -36,7 +36,7 @@ Preparation is incremental. Each manifest has an independent state record under 
 ## Configure the Windows target
 
 1. Enable WinRM on the target and choose an Ansible-supported authentication method.
-2. Copy `ansible/inventory.example.yml` to `ansible/inventory.yml` and edit the host, user, transport, and TLS settings.
+2. Copy `ansible/inventory.example.yaml` to `ansible/inventory.yaml` and edit the host, user, transport, and TLS settings.
 3. Put the password in the environment rather than Git:
 
    ```sh

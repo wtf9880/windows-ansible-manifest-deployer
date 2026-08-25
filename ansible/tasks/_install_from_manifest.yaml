@@ -4,7 +4,7 @@
 #    name: manifest
 - name: Create a controller-side temp file for the extracted tasks
   ansible.builtin.tempfile:
-    suffix: "_{{ manifest.name }}_tasks.yml"
+    suffix: "_{{ manifest.name }}_tasks.yaml"
   delegate_to: localhost
   run_once: true
   register: tmp_task_file

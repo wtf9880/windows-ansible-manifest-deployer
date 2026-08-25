@@ -1,5 +1,7 @@
 ---
 # https://github.com/ansible-collections/ansible.windows/blob/main/plugins/modules/win_service.py
+# https://github.com/ansible-collections/ansible.windows/blob/main/plugins/modules/win_service.ps1
+# https://docs.ansible.com/projects/ansible/latest/collections/ansible/windows/win_service_module.html
 #- name: Stop and Disable the WLMS service
 #  ansible.windows.win_service:
 #    name: WLMS

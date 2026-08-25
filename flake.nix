@@ -20,6 +20,7 @@
               (ansible.override { windowsSupport = true; })
               gnumake
               python3
+              python3Packages.pyyaml
               zig
               mono
             ];

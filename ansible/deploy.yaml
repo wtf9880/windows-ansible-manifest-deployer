@@ -4,12 +4,20 @@
   gather_facts: false
   vars:
     local_cache: "{{ playbook_dir }}/../Cache"
+    local_extract_dir: "{{ playbook_dir }}/../Cache/Extracted"
     remote_root: 'C:\ProgramData\manifest-deployer'
     remote_cache: '{{ remote_root }}\cache'
     remote_state: '{{ remote_root }}\state'
     manifest_paths: "{{ query('ansible.builtin.fileglob', playbook_dir + '/../manifests/*.yaml') }}"
 
   pre_tasks:
+    - name: Ensure local extract directory exists on the controller
+      ansible.builtin.file:
+        path: "{{ local_extract_dir }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+
     - name: Load deployment manifests
       ansible.builtin.set_fact:
         app_manifests: >-

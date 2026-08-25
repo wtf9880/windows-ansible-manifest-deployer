@@ -63,12 +63,8 @@ locked:
   version: v0.12.4
   url: https://github.com/neovim/neovim/releases/download/v0.12.4/nvim-win64.zip
   sha256: 9fc3572829ffd13debb6e32555da2c8cc02555568260a9fc4cf1f65bbcca319c
-deploy:
-  type: portable_zip
-  destination: 'C:\Tools\Neovim'
-  strip_single_root: true
-  path: 'C:\Tools\Neovim\bin'
-  add_to_path: true
+tasks:
+  # this section contains actual ansible tasks required to deploy this app
 ```
 
 Supported updater sources are:

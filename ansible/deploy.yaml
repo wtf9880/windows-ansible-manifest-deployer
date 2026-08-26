@@ -51,13 +51,13 @@
         - "{{ remote_cache }}"
         - "{{ remote_state }}"
 
-    - name: Stage pinned artifacts on the target
-      ansible.windows.win_copy:
-        src: "{{ local_cache }}/{{ item.cache_filename }}"
-        dest: "{{ remote_cache }}\\{{ item.cache_filename }}"
-      loop: "{{ app_manifests }}"
-      loop_control:
-        label: "{{ item.name }}"
+    #- name: Stage pinned artifacts on the target
+    #  ansible.windows.win_copy:
+    #    src: "{{ local_cache }}/{{ item.cache_filename }}"
+    #    dest: "{{ remote_cache }}\\{{ item.cache_filename }}"
+    #  loop: "{{ app_manifests }}"
+    #  loop_control:
+    #    label: "{{ item.name }}"
 
     - import_tasks: tasks/windows_configuration.yaml
 

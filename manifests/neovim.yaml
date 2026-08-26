@@ -25,6 +25,22 @@ tasks:
     community.windows.win_unzip:
       src: "{{ remote_cache }}/nvim-win64.zip"
       dest: "C:\\Tools\\Neovim"
+  - name: Strip extraction subdirectory
+    ansible.windows.win_shell:
+      cmd: |
+        Move-Item -Path "C:\\Tools\\Neovim\\nvim-win64\\*" -Destination "C:\\Tools\\Neovim\\" -Force
+        Remove-Item -Path "C:\\Tools\\Neovim\\nvim-win64" -Force -Recurse
+      removes: "C:\\Tools\\Neovim\\nvim-win64"
+      creates: "C:\\Tools\\Neovim\\bin\\nvim.exe"
+  #- name: Move contents to parent directory (stage 1, copying)
+  #  ansible.windows.win_copy:
+  #    src: "C:\\Tools\\Neovim\\nvim-win64\\"
+  #    dest: "C:\\Tools\\Neovim\\"
+  #    remote_src: yes
+  #- name: Move contents to parent directory (stage 2, removing redundant dir)
+  #  ansible.windows.win_file:
+  #    path: "C:\\Tools\\Neovim\\nvim-win64"
+  #    state: absent
   - name: Add Neovim to PATH
     ansible.windows.win_path:
       elements:

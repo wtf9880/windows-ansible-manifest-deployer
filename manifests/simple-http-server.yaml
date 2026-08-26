@@ -1,0 +1,27 @@
+schema: 1
+name: simple-http-server
+source:
+  - kind: github_release
+    repo: TheWaWaR/simple-http-server
+    tag_regex: '^v\d+\.\d+\.\d+$'
+    asset_regex: '^x86_64-pc-windows-msvc-simple-http-server\.exe$'
+    include_prereleases: false
+    cache_filename: simple-http-server.exe
+locked:
+  - version: v0.8.0
+    url: https://github.com/TheWaWaR/simple-http-server/releases/download/v0.8.0/x86_64-pc-windows-msvc-simple-http-server.exe
+    sha256: 6faac740df27e317125f562a4f5239fc2d95161aea995930929b1c895994aa9b
+    cache_filename: simple-http-server.exe
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\simple-http-server"
+      state: directory
+  - name: Push the file to target device
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/simple-http-server.exe"
+      dest: "C:\\Tools\\simple-http-server\\simple-http-server.exe"
+  - name: Add Simple HTTP Server to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\simple-http-server"

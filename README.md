@@ -86,7 +86,7 @@ Supported updater sources are:
   - `duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
 - `static_file`: Repesents a fixed URL that does not change. Requires:
   - `url`: The download link for the file.
-  - `sha256`: The SHA256 hash of the file.
+  - `sha256`: The SHA256 hash of the file. Use `SKIP` to ignore hash verification and avoid redownloading if the file already exists in `Cache/` (behaves as if the hash never changes).
   - `duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
 
 URLs can optionally use the `file://` protocol for local downloads.
@@ -103,4 +103,4 @@ Add `src/tool-name.cpp`. The existing pattern rule(`make compile`) produces `Cac
 zig c++ -target x86_64-windows-gnu -O2 -s cpp/tool-name.cpp -o Cache/tool-name.exe
 ```
 
-Then add a manifest with a `kind: static_file` source block and `url: file://../Cache/tool-name.exe`, and add a `tasks` block to allow Ansible to deploy it to the target device.
+Then add a manifest with a `kind: static_file` and `url: file://../Cache/tool-name.exe` and `sha256: SKIP` in the `source` block, and add a `tasks` block to allow Ansible to deploy it to the target device.

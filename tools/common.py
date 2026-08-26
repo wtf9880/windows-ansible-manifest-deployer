@@ -33,9 +33,9 @@ def load_manifest(path: Path) -> dict[str, Any]:
     locked = data["locked"]
     if not isinstance(locked, dict):
         raise ManifestError(f"{path}: locked must be a mapping")
-    digest = str(locked.get("sha256", "")).lower()
-    if not SHA256_RE.fullmatch(digest):
-        raise ManifestError(f"{path}: locked.sha256 must be 64 lowercase hex characters")
+    digest = str(locked.get("sha256", ""))
+    if digest.lower() != "skip" and not SHA256_RE.fullmatch(digest.lower()):
+        raise ManifestError(f"{path}: locked.sha256 must be 'SKIP' or 64 lowercase hex characters")
     locked["sha256"] = digest
     return data
 

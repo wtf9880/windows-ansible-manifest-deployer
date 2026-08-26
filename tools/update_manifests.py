@@ -77,7 +77,8 @@ def checksum_file_lock(source: dict[str, Any], token: str | None) -> dict[str, s
 
 
 def static_file_lock(source: dict[str, Any], token: str | None) -> dict[str, str]:
-    return {"version": "static", "url": source["url"], "sha256": source["sha256"]}
+    sha256 = source["sha256"]
+    return {"version": "static", "url": source["url"], "sha256": sha256}
 
 
 def discover(manifest: dict[str, Any], token: str | None) -> dict[str, str]:

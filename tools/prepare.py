@@ -56,9 +56,10 @@ def prepare_one(path: Path, cache: Path, verify_only: bool) -> bool:
     if verify_only:
         if not artifact.is_file():
             raise ManifestError(f"{artifact}: missing")
-        actual = sha256_file(artifact)
-        if actual != expected:
-            raise ManifestError(f"{artifact}: SHA-256 mismatch: expected {expected}, got {actual}")
+        if expected != "skip":
+            actual = sha256_file(artifact)
+            if actual != expected:
+                raise ManifestError(f"{artifact}: SHA-256 mismatch: expected {expected}, got {actual}")
         print(f"verified  {artifact}")
         return False
 
@@ -66,7 +67,7 @@ def prepare_one(path: Path, cache: Path, verify_only: bool) -> bool:
         print(f"unchanged {manifest['name']}")
         return False
 
-    if artifact.is_file() and sha256_file(artifact) == expected:
+    if artifact.is_file() and (expected == "skip" or sha256_file(artifact) == expected):
         print(f"unchanged {manifest['name']} (verified hash)")
         write_state(state_path, current_manifest_hash, artifact)
         return False
@@ -83,7 +84,7 @@ def prepare_one(path: Path, cache: Path, verify_only: bool) -> bool:
             manifest_path=path,
             duplicate_mode=duplicate_mode
         )
-        if actual != expected:
+        if expected != "skip" and actual != expected:
             raise ManifestError(
                 f"{path}: downloaded SHA-256 mismatch: expected {expected}, got {actual}"
             )

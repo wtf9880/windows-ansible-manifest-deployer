@@ -1,16 +1,17 @@
 schema: 1
 name: aria2
-cache_filename: aria2-win-64bit.zip
 source:
   kind: github_release
   repo: aria2/aria2
   tag_regex: ^release-1\.\d+\.\d+$
   asset_regex: ^aria2-.*-win-64bit-build1\.zip$
   include_prereleases: false
+  cache_filename: aria2-win-64bit.zip
 locked:
   version: release-1.37.0
   url: https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip
   sha256: 67d015301eef0b612191212d564c5bb0a14b5b9c4796b76454276a4d28d9b288
+  cache_filename: aria2-win-64bit.zip
 tasks:
 # https://github.com/ansible/ansible/blob/devel/lib/ansible/modules/unarchive.py
 # https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/unarchive_module.html

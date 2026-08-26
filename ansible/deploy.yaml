@@ -35,13 +35,17 @@
 
     - name: Ensure controller prepared all artifacts
       ansible.builtin.stat:
-        path: "{{ local_cache }}/{{ item.cache_filename }}"
+        path: "{{ local_cache }}/{{ item.source.cache_filename | default(item.locked.cache_filename) }}"
       loop: "{{ app_manifests }}"
       loop_control:
         label: "{{ item.name }}"
       delegate_to: localhost
       register: prepared_artifacts
-      failed_when: not prepared_artifacts.stat.exists
+      when:
+        - item.source is defined or item.locked is defined
+      failed_when:
+        - prepared_artifacts.stat is defined
+        - not prepared_artifacts.stat.exists
 
     - name: Ensure remote working directories exist
       ansible.windows.win_file:
@@ -59,7 +63,7 @@
     #  loop_control:
     #    label: "{{ item.name }}"
 
-    - import_tasks: tasks/windows_configuration.yaml
+    #- import_tasks: tasks/windows_configuration.yaml
 
     #vars:
     #  manifest_dir: "{{ playbook_dir }}/../manifests"

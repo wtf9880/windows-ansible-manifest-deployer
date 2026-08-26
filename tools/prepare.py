@@ -47,12 +47,13 @@ def write_state(path: Path, manifest_hash: str, artifact: Path) -> None:
 
 
 def prepare_one(path: Path, cache: Path, verify_only: bool) -> bool:
-    manifest = load_manifest(path)
+    manifest = load_manifest(path, is_updater=False)
     if not manifest.get("source") and not manifest.get("locked"):
         print(f"skipping  {manifest['name']} (no source or lock)")
         return False
-    artifact = cache / manifest["cache_filename"]
-    expected = manifest["locked"]["sha256"]
+    locked = manifest["locked"]
+    artifact = cache / Path(locked["cache_filename"])
+    expected = locked["sha256"]
     state_path = cache / ".state" / f"{path.stem}.json"
     current_manifest_hash = manifest_digest(path)
 

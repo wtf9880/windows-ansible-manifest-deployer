@@ -17,27 +17,50 @@ class ManifestError(ValueError):
     pass
 
 
-def load_manifest(path: Path) -> dict[str, Any]:
+def load_manifest(path: Path, is_updater: bool = False) -> dict[str, Any]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ManifestError(f"{path}: manifest must be a mapping")
-    required = ("schema", "name", "cache_filename", "source", "locked")
+    required = ("schema", "name")
     missing = [key for key in required if key not in data]
     if missing:
         raise ManifestError(f"{path}: missing keys: {', '.join(missing)}")
     if data["schema"] != 1:
         raise ManifestError(f"{path}: unsupported schema {data['schema']!r}")
-    filename = data["cache_filename"]
-    if not isinstance(filename, str) or Path(filename).name != filename:
-        raise ManifestError(f"{path}: cache_filename must be a plain filename")
-    locked = data["locked"]
-    if not isinstance(locked, dict):
+    source = data.get("source", {})
+    locked = data.get("locked", {})
+
+    if source and not isinstance(source, dict):
+        raise ManifestError(f"{path}: source must be a mapping")
+    if locked and not isinstance(locked, dict):
         raise ManifestError(f"{path}: locked must be a mapping")
-    digest = str(locked.get("sha256", ""))
-    if digest.lower() != "skip" and not SHA256_RE.fullmatch(digest.lower()):
-        raise ManifestError(f"{path}: locked.sha256 must be 'SKIP' or 64 lowercase hex characters")
-    locked["sha256"] = digest
+    #for block_name, block in (("source", source), ("locked", locked)):
+    #    filename = (block or {}).get("cache_filename")
+    #    if filename is None:
+    #        continue
+    #    if not isinstance(filename, str) or Path(filename).name != filename:
+    #        raise ManifestError(f"{path}: {block_name}.cache_filename must be a plain filename")
+
+    #if source.get("cache_filename") or locked.get("cache_filename") is None:
+    #    raise ManifestError(f"{path}: cache_filename is missing in both source and locked block")
+    if is_updater:
+        if source and source.get("cache_filename") is None:
+            raise ManifestError(f"{path}: cache_filename is missing in the source block")
+    else:
+        if locked:
+            if locked.get("cache_filename") is None:
+                raise ManifestError(f"{path}: cache_filename is missing in the locked block")
+            digest = str(locked.get("sha256", ""))
+            if digest.lower() != "skip" and not SHA256_RE.fullmatch(digest.lower()):
+                raise ManifestError(f"{path}: locked.sha256 must be 'SKIP' or 64 lowercase hex characters")
+            locked["sha256"] = digest
     return data
+
+
+#def cache_filename(manifest: dict[str, Any]) -> str | None:
+#    source = manifest.get("source") or {}
+#    locked = manifest.get("locked") or {}
+#    return source.get("cache_filename") or locked.get("cache_filename")
 
 
 def sha256_file(path: Path) -> str:

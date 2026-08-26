@@ -110,7 +110,7 @@ def main() -> int:
         if not paths:
             raise ManifestError(f"no manifests found in {args.manifests}")
         for path in paths:
-            manifest = load_manifest(path)
+            manifest = load_manifest(path, is_updater=True)
             if not manifest.get("source") and not manifest.get("locked"):
                 print(f"skipping  {manifest['name']} (no source or lock)")
                 continue

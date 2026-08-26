@@ -1,15 +1,16 @@
 schema: 1
 name: busybox
-cache_filename: busybox.exe
 source:
   kind: checksum_file
   url: https://frippery.org/files/busybox/busybox64u.exe
   checksum_url: https://frippery.org/files/busybox/SHA256SUM
   checksum_filename: busybox64u.exe
+  cache_filename: busybox.exe
 locked:
   version: FRP-6075-g169694ebd
   url: https://frippery.org/files/busybox/busybox64u.exe
   sha256: 6e263d154d8548d1eb936f65d1d8312c80df31c45974e48d6335e4dcc0f4f34c
+  cache_filename: busybox.exe
 tasks:
   - name: Create directory if it does not exist
     ansible.windows.win_file:

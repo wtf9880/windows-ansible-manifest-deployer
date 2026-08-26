@@ -52,19 +52,37 @@ The playbook extracts portable archives below `C:\Tools`, copies standalone exec
 ```yaml
 schema: 1
 name: neovim
-cache_filename: nvim.zip
+# This section contains information about latest version of the app (can be omitted, which means the app is pre-installed and this is a feature manifest(e.g. a manifest to disable specific service)
 source:
   kind: github_release
   repo: neovim/neovim
   tag_regex: '^v0\.12\.\d+$'
   asset_regex: '^nvim-win64\.zip$'
   include_prereleases: false
+  cache_filename: nvim.zip
+# This section contains information about latest version of the app (can be omitted when "source" block it empty/omitted too)
 locked:
   version: v0.12.4
   url: https://github.com/neovim/neovim/releases/download/v0.12.4/nvim-win64.zip
   sha256: 9fc3572829ffd13debb6e32555da2c8cc02555568260a9fc4cf1f65bbcca319c
+# This section contains actual ansible tasks required to deploy this app
 tasks:
-  # this section contains actual ansible tasks required to deploy this app
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\Neovim"
+      state: directory
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/nvim-win64.zip"
+      dest: "{{ remote_cache }}\\nvim-win64.zip"
+  - name: Unzip the file to target device
+    community.windows.win_unzip:
+      src: "{{ remote_cache }}/nvim-win64.zip"
+      dest: "C:\\Tools\\Neovim"
+  - name: Add Neovim to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\Neovim\\bin"
 ```
 
 Supported updater sources are:
@@ -74,20 +92,24 @@ Supported updater sources are:
   - `tag_regex`: Regular expression to match the latest tag. The most recent release matching this regex is selected as the latest version.
   - `asset_regex`: Regular expression to select the binary file. The first file in the selected release matching this regex is downloaded.
   - `include_prereleases` (optional, defaults to `false`): Whether to include prereleases in the search.
+  - `cache_filename`: The filename of downloaded file in the "Cache/" directory
 - `github_release_template`: Discovers a GitHub release tag, then derives a vendor URL and reads a vendor checksum file. Used for projects like Node.js where GitHub releases do not contain binaries. Requires:
   - GitHub parameters as specified in `github_release` (except `asset_regex` which is not required).
   - `url_template`: A template string (supporting `{version}` and `{version_without_v}`) to produce the download URL.
   - `checksum_url_template`: A template string (supporting `{version}` and `{version_without_v}`) to produce the `SHA256SUM` file URL.
   - `checksum_filename_template`: A template string (supporting `{version}` and `{version_without_v}`) to produce the filename as it appears in the `SHA256SUM` file.
+  - `cache_filename`: The filename of downloaded file in the "Cache/" directory
 - `checksum_file`: Uses a fixed URL and detects changes from an upstream checksum list. Requires:
   - `url`: The download link for the file.
   - `checksum_url`: The download link for the `SHA256SUM` file.
   - `checksum_filename`: The filename within the `SHA256SUM` file.
   - `duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
+  - `cache_filename`: The filename of downloaded file in the "Cache/" directory
 - `static_file`: Repesents a fixed URL that does not change. Requires:
   - `url`: The download link for the file.
   - `sha256`: The SHA256 hash of the file. Use `SKIP` to ignore hash verification and avoid redownloading if the file already exists in `Cache/` (behaves as if the hash never changes).
   - `duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
+  - `cache_filename`: The filename of downloaded file in the "Cache/" directory
 
 URLs can optionally use the `file://` protocol for local downloads.
 

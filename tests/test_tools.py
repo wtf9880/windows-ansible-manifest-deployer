@@ -50,67 +50,31 @@ class CommonTests(unittest.TestCase):
             with self.assertRaises(ManifestError):
                 selected_paths(root, ["gamma"])
 
-    #def test_rejects_cache_path_traversal(self) -> None:
-    #    for block in ("source", "locked"):
-    #        with self.subTest(block=block):
-    #            manifest = {
-    #                "schema": 1,
-    #                "name": "bad",
-    #                "source": {},
-    #                "locked": {"sha256": "a" * 64},
-    #            }
-    #            manifest[block]["cache_filename"] = "../bad.exe"
-    #            with tempfile.TemporaryDirectory() as directory:
-    #                path = Path(directory) / "bad.yaml"
-    #                path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
-    #                with self.assertRaises(ManifestError):
-    #                    load_manifest(path)
-
     def test_requires_cache_filename_in_downloader(self) -> None:
         manifest = {
             "schema": 1,
             "name": "bad",
-            "source": {},
-            "locked": {"sha256": "a" * 64},
+            "source": [],
+            "locked": [{"sha256": "a" * 64}],
         }
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.yaml"
             path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
             with self.assertRaises(ManifestError):
                 load_manifest(path, is_updater=False)
+
     def test_requires_cache_filename_in_lockupdater(self) -> None:
         manifest = {
             "schema": 1,
             "name": "bad",
-            "source": {"kind": "static_file", "url": "https://example.com/a.zip"},
-            "locked": {},
+            "source": [{"kind": "static_file", "url": "https://example.com/a.zip"}],
+            "locked": [],
         }
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.yaml"
             path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
             with self.assertRaises(ManifestError):
                 load_manifest(path, is_updater=True)
-
-    #def test_resolves_cache_filename_from_source_then_locked(self) -> None:
-    #    from_source = {
-    #        "schema": 1,
-    #        "name": "ok",
-    #        "source": {"cache_filename": "from-source.bin"},
-    #        "locked": {"sha256": "a" * 64, "cache_filename": "from-locked.bin"},
-    #    }
-    #    from_locked = {
-    #        "schema": 1,
-    #        "name": "ok",
-    #        "source": {},
-    #        "locked": {"sha256": "a" * 64, "cache_filename": "from-locked.bin"},
-    #    }
-    #    for expected, manifest in (("from-source.bin", from_source), ("from-locked.bin", from_locked)):
-    #        with self.subTest(expected=expected):
-    #            with tempfile.TemporaryDirectory() as directory:
-    #                path = Path(directory) / "ok.yaml"
-    #                path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
-    #                loaded = load_manifest(path)
-    #                self.assertEqual(cache_filename(loaded), expected)
 
 
 if __name__ == "__main__":

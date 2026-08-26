@@ -2,9 +2,9 @@
 
 This repository separates **discovery** from **preparation**:
 
-- `manifests/*.yaml` describes how an updater can discover a release and contains a pinned `locked` URL and SHA-256.
-- `make prepare` uses only the pinned `locked` block. It never checks for a newer version.
-- `make update` queries the declared upstreams and rewrites `locked` blocks when newer artifacts are found.
+- `manifests/*.yaml` describes how an updater can discover releases and contains pinned `locked` URLs and SHA-256s. Both `source` and `locked` are lists, so one manifest can manage multiple artifacts.
+- `make prepare` uses only the pinned `locked` list. It never checks for a newer version.
+- `make update` queries the declared upstreams and rewrites `locked` lists when newer artifacts are found.
 - `make deploy` prepares local artifacts, then deploys them to a Windows x86-64 host with Ansible over WinRM.
 
 Prepared downloads and cross-compiled programs live in `Cache/` and are intentionally not committed.
@@ -30,7 +30,7 @@ make ping
 make deploy
 ```
 
-Preparation is incremental. Each manifest has an independent state record under `Cache/.state/`; editing one manifest invalidates only that artifact. Each C++ source has a normal Make dependency on its corresponding `Cache/<stem>.exe`, so changing one source rebuilds only that program. Downloads are written to a temporary file, SHA-256 checked, and atomically renamed.
+Preparation is incremental. Each manifest has an independent state record under `Cache/.state/`; editing one manifest invalidates only that manifest's artifacts. Each C++ source has a normal Make dependency on its corresponding `Cache/<stem>.exe`, so changing one source rebuilds only that program. Downloads are written to a temporary file, SHA-256 checked, and atomically renamed. `Cache/.state/*.json` now tracks all `locked` entries for a manifest (with per-artifact size/mtime).
 
 `GITHUB_TOKEN` is optional but recommended for `make update` to avoid GitHub's anonymous API rate limit.
 
@@ -49,22 +49,25 @@ The playbook extracts portable archives below `C:\Tools`, copies standalone exec
 
 ## Manifest format
 
+`source` and `locked` are **lists** of entries, allowing a single manifest to manage multiple artifacts. Each entry corresponds positionally (`source[0]` ↔ `locked[0]`, etc.) and must define its own `cache_filename`. Both blocks may be omitted or empty for feature-only manifests (e.g., a manifest that only disables a service).
+
 ```yaml
 schema: 1
 name: neovim
-# This section contains information about latest version of the app (can be omitted, which means the app is pre-installed and this is a feature manifest(e.g. a manifest to disable specific service)
+# Discovery entries - each describes one upstream artifact (omit for feature-only manifests)
 source:
-  kind: github_release
-  repo: neovim/neovim
-  tag_regex: '^v0\.12\.\d+$'
-  asset_regex: '^nvim-win64\.zip$'
-  include_prereleases: false
-  cache_filename: nvim.zip
-# This section contains information about latest version of the app (can be omitted when "source" block it empty/omitted too)
+  - kind: github_release
+    repo: neovim/neovim
+    tag_regex: '^v0\.12\.\d+$'
+    asset_regex: '^nvim-win64\.zip$'
+    include_prereleases: false
+    cache_filename: nvim.zip
+# Pinned artifacts - rewritten by `make update`; omit when source is empty
 locked:
-  version: v0.12.4
-  url: https://github.com/neovim/neovim/releases/download/v0.12.4/nvim-win64.zip
-  sha256: 9fc3572829ffd13debb6e32555da2c8cc02555568260a9fc4cf1f65bbcca319c
+  - version: v0.12.4
+    url: https://github.com/neovim/neovim/releases/download/v0.12.4/nvim-win64.zip
+    sha256: 9fc3572829ffd13debb6e32555da2c8cc02555568260a9fc4cf1f65bbcca319c
+    cache_filename: nvim.zip
 # This section contains actual ansible tasks required to deploy this app
 tasks:
   - name: Create directory if it does not exist
@@ -85,7 +88,7 @@ tasks:
         - "C:\\Tools\\Neovim\\bin"
 ```
 
-Supported updater sources are:
+Supported updater sources are (fields listed per **source entry**):
 
 - `github_release`: Selects one GitHub release asset using tag and asset regular expressions. Requires the following fields:
   - `repo`: The target application repository name (e.g., `"TheWaWaR/simple-http-server"`).
@@ -103,17 +106,19 @@ Supported updater sources are:
   - `url`: The download link for the file.
   - `checksum_url`: The download link for the `SHA256SUM` file.
   - `checksum_filename`: The filename within the `SHA256SUM` file.
-  - `duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
+  - `file_duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
   - `cache_filename`: The filename of downloaded file in the "Cache/" directory
 - `static_file`: Repesents a fixed URL that does not change. Requires:
   - `url`: The download link for the file.
   - `sha256`: The SHA256 hash of the file. Use `SKIP` to ignore hash verification and avoid redownloading if the file already exists in `Cache/` (behaves as if the hash never changes).
-  - `duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
+  - `file_duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
   - `cache_filename`: The filename of downloaded file in the "Cache/" directory
 
 URLs can optionally use the `file://` protocol for local downloads.
 
-The `duplicate_mode` field specifies how the downloader should duplicate the source file when using `file://` (disk-to-disk operation). It accepts an array of modes: `"copy"`, `"hardlink"`, or `"symlink"`. This allows for fallbacks; for example, `["hardlink", "copy"]` will attempt a hardlink first and fall back to copy if the source and destination are on different filesystems.
+The `file_duplicate_mode` field (per source entry) specifies how the downloader should duplicate the source file when using `file://` (disk-to-disk operation). It accepts an array of modes: `"copy"`, `"hardlink"`, or `"symlink"`. This allows for fallbacks; for example, `["hardlink", "copy"]` will attempt a hardlink first and fall back to copy if the source and destination are on different filesystems. When a manifest is updated, `file_duplicate_mode` is copied to `locked[].file_duplicate_mode` and is then used by `make prepare/download`.
+
+`source` and `locked` lists must have the same length when both are present.
 
 The updater uses GitHub's REST API directly. The lock updater script uses PyYAML which rewrites a changed manifest in normalized YAML, so keep explanatory documentation here rather than relying on comments inside manifests.
 
@@ -125,4 +130,4 @@ Add `src/tool-name.cpp`. The existing pattern rule(`make compile`) produces `Cac
 zig c++ -target x86_64-windows-gnu -O2 -s cpp/tool-name.cpp -o Cache/tool-name.exe
 ```
 
-Then add a manifest with a `kind: static_file` and `url: file://../Cache/tool-name.exe` and `sha256: SKIP` in the `source` block, and add a `tasks` block to allow Ansible to deploy it to the target device.
+Then add a manifest with a `kind: static_file` and `url: file://../Cache/tool-name.exe` and `sha256: SKIP` in a `source` list entry (with `cache_filename`), and add a `tasks` block to allow Ansible to deploy it to the target device. For multiple files, add multiple entries to `source`/`locked`.

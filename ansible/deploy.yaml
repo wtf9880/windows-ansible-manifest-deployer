@@ -35,14 +35,12 @@
 
     - name: Ensure controller prepared all artifacts
       ansible.builtin.stat:
-        path: "{{ local_cache }}/{{ item.source.cache_filename | default(item.locked.cache_filename) }}"
-      loop: "{{ app_manifests }}"
+        path: "{{ local_cache }}/{{ item.1.cache_filename }}"
+      loop: "{{ app_manifests | subelements('locked', skip_missing=True) }}"
       loop_control:
-        label: "{{ item.name }}"
+        label: "{{ item.0.name }}:{{ item.1.cache_filename }}"
       delegate_to: localhost
       register: prepared_artifacts
-      when:
-        - item.source is defined or item.locked is defined
       failed_when:
         - prepared_artifacts.stat is defined
         - not prepared_artifacts.stat.exists

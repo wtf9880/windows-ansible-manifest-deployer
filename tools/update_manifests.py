@@ -81,18 +81,32 @@ def static_file_lock(source: dict[str, Any], token: str | None) -> dict[str, str
     return {"version": "static", "url": source["url"], "sha256": sha256}
 
 
-def discover(manifest: dict[str, Any], token: str | None) -> dict[str, str]:
-    source = manifest["source"]
+def discover_one(source: dict[str, Any], token: str | None) -> dict[str, Any]:
     kind = source.get("kind")
     if kind == "github_release":
-        return github_asset_lock(source, token)
-    if kind == "github_release_template":
-        return github_template_lock(source, token)
-    if kind == "checksum_file":
-        return checksum_file_lock(source, token)
-    if kind == "static_file":
-        return static_file_lock(source, token)
-    raise ManifestError(f"{manifest['name']}: unsupported source.kind {kind!r}")
+        base = github_asset_lock(source, token)
+    elif kind == "github_release_template":
+        base = github_template_lock(source, token)
+    elif kind == "checksum_file":
+        base = checksum_file_lock(source, token)
+    elif kind == "static_file":
+        base = static_file_lock(source, token)
+    else:
+        raise ManifestError(f"unsupported source.kind {kind!r}")
+    lock: dict[str, Any] = {
+        "version": base["version"],
+        "url": base["url"],
+        "sha256": base["sha256"],
+        "cache_filename": source["cache_filename"],
+    }
+    if "file_duplicate_mode" in source:
+        lock["file_duplicate_mode"] = source["file_duplicate_mode"]
+    return lock
+
+
+def discover(manifest: dict[str, Any], token: str | None) -> list[dict[str, Any]]:
+    sources: list[dict[str, Any]] = manifest.get("source") or []
+    return [discover_one(src, token) for src in sources]
 
 
 def main() -> int:
@@ -111,17 +125,27 @@ def main() -> int:
             raise ManifestError(f"no manifests found in {args.manifests}")
         for path in paths:
             manifest = load_manifest(path, is_updater=True)
-            if not manifest.get("source") and not manifest.get("locked"):
+            sources: list[dict[str, Any]] = manifest.get("source", [])
+            locked: list[dict[str, Any]] = manifest.get("locked", [])
+            if not sources and not locked:
                 print(f"skipping  {manifest['name']} (no source or lock)")
                 continue
-            new_lock = discover(manifest, token)
-            if manifest["locked"] == new_lock:
-                print(f"current   {manifest['name']} {new_lock['version']}")
+            #if not sources:
+            #    print(f"skipping  {manifest['name']} (no source entries)")
+            #    continue
+            new_locks = discover(manifest, token)
+            if locked == new_locks:
+                versions = ", ".join(l.get("version", "") for l in new_locks)
+                print(f"current   {manifest['name']} {versions}")
                 continue
             updates += 1
-            print(f"update    {manifest['name']} {manifest['locked']['version']} -> {new_lock['version']}")
+            old_versions = ", ".join(l.get("version", "") for l in locked) if locked else "(none)"
+            new_versions = ", ".join(l.get("version", "") for l in new_locks)
+            print(f"update    {manifest['name']} {old_versions} -> {new_versions}")
             if not args.check:
-                manifest["locked"] = new_lock
+                manifest["locked"] = new_locks
+                # Ensure source stays as list
+                #manifest["source"] = sources
                 path.write_text(yaml.safe_dump(manifest, sort_keys=False, width=1000), encoding="utf-8")
         if args.check and updates:
             print(f"{updates} update(s) available")

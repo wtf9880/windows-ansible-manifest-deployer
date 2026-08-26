@@ -16,7 +16,6 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 class ManifestError(ValueError):
     pass
 
-
 def load_manifest(path: Path, is_updater: bool = False) -> dict[str, Any]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -27,40 +26,28 @@ def load_manifest(path: Path, is_updater: bool = False) -> dict[str, Any]:
         raise ManifestError(f"{path}: missing keys: {', '.join(missing)}")
     if data["schema"] != 1:
         raise ManifestError(f"{path}: unsupported schema {data['schema']!r}")
-    source = data.get("source", {})
-    locked = data.get("locked", {})
+    source = data.get("source", [])
+    locked = data.get("locked", [])
+    if not isinstance(source, list):
+        raise ManifestError(f"{path}: source must be a list of mappings")
+    if not isinstance(locked, list):
+        raise ManifestError(f"{path}: locked must be a list of mappings")
+    if source and locked and len(source) != len(locked):
+        raise ManifestError(f"{path}: source and locked must have the same number of entries ({len(source)} vs {len(locked)})")
 
-    if source and not isinstance(source, dict):
-        raise ManifestError(f"{path}: source must be a mapping")
-    if locked and not isinstance(locked, dict):
-        raise ManifestError(f"{path}: locked must be a mapping")
-    #for block_name, block in (("source", source), ("locked", locked)):
-    #    filename = (block or {}).get("cache_filename")
-    #    if filename is None:
-    #        continue
-    #    if not isinstance(filename, str) or Path(filename).name != filename:
-    #        raise ManifestError(f"{path}: {block_name}.cache_filename must be a plain filename")
-
-    #if source.get("cache_filename") or locked.get("cache_filename") is None:
-    #    raise ManifestError(f"{path}: cache_filename is missing in both source and locked block")
     if is_updater:
-        if source and source.get("cache_filename") is None:
-            raise ManifestError(f"{path}: cache_filename is missing in the source block")
+        for idx, entry in enumerate(source):
+            if entry.get("cache_filename") is None:
+                raise ManifestError(f"{path}: source[{idx}].cache_filename is missing")
     else:
-        if locked:
-            if locked.get("cache_filename") is None:
-                raise ManifestError(f"{path}: cache_filename is missing in the locked block")
-            digest = str(locked.get("sha256", ""))
+        for idx, entry in enumerate(locked):
+            if entry.get("cache_filename") is None:
+                raise ManifestError(f"{path}: locked[{idx}].cache_filename is missing")
+            digest = str(entry.get("sha256", ""))
             if digest.lower() != "skip" and not SHA256_RE.fullmatch(digest.lower()):
-                raise ManifestError(f"{path}: locked.sha256 must be 'SKIP' or 64 lowercase hex characters")
-            locked["sha256"] = digest
+                raise ManifestError(f"{path}: locked[{idx}].sha256 must be 'SKIP' or 64 lowercase hex characters")
+            entry["sha256"] = digest
     return data
-
-
-#def cache_filename(manifest: dict[str, Any]) -> str | None:
-#    source = manifest.get("source") or {}
-#    locked = manifest.get("locked") or {}
-#    return source.get("cache_filename") or locked.get("cache_filename")
 
 
 def sha256_file(path: Path) -> str:
@@ -79,7 +66,7 @@ def request(url: str, github_token: str | None = None) -> urllib.request.Request
     return urllib.request.Request(url, headers=headers)
 
 
-def download(url: str, destination: Path, github_token: str | None = None, manifest_path: Path | None = None, duplicate_mode: list[str] | None = None) -> str:
+def download(url: str, destination: Path, github_token: str | None = None, manifest_path: Path | None = None, file_duplicate_mode: list[str] | None = None) -> str:
     if url.startswith("file://"):
         path_str = url[7:]
         if not path_str:
@@ -94,7 +81,7 @@ def download(url: str, destination: Path, github_token: str | None = None, manif
         if not source_path.is_file():
             raise ManifestError(f"Source file not found: {source_path}")
 
-        modes = duplicate_mode or ["copy"]
+        modes = file_duplicate_mode or ["copy"]
         for mode in modes:
             try:
                 if mode == "hardlink":
@@ -106,6 +93,7 @@ def download(url: str, destination: Path, github_token: str | None = None, manif
                     shutil.copy2(source_path, destination)
                 return sha256_file(destination)
             except OSError:
+                print(f"Warning: failed to duplicate {source_path} to {destination} using mode {mode}")
                 continue
         raise ManifestError(f"Failed to duplicate {source_path} to {destination} using modes {modes}")
 

@@ -10,9 +10,10 @@ CXXFLAGS ?= -O2 -s
 SRC_SOURCES := $(wildcard src/*.cpp src/*.c src/*.cs)
 SRC_BINARIES := $(patsubst src/%.cpp,Cache/%.exe,$(wildcard src/*.cpp)) $(patsubst src/%.c,Cache/%.exe,$(wildcard src/*.c)) $(patsubst src/%.cs,Cache/%.exe,$(wildcard src/*.cs))
 
-.PHONY: all prepare download compile verify update check-updates deploy ping test clean
+ACTION_TARGETS := all prepare download compile verify update check-updates deploy ping test clean
+.PHONY: $(ACTION_TARGETS)
 
-ifneq ($(filter update check-updates verify,$(MAKECMDGOALS)),)
+ifneq ($(filter update check-updates download verify,$(MAKECMDGOALS)),)
 %:
 	@:
 endif
@@ -20,9 +21,6 @@ endif
 all: prepare
 
 prepare: download compile
-
-download: | Cache
-	$(PYTHON) tools/prepare.py
 
 Cache/%.exe: src/%.cpp Makefile | Cache
 	$(ZIG) c++ -target $(ZIG_TARGET) $(CXXFLAGS) $< -o $@
@@ -38,14 +36,17 @@ Cache:
 
 compile: $(SRC_BINARIES)
 
+download: | Cache
+	$(PYTHON) tools/prepare.py $(foreach name,$(filter-out $(ACTION_TARGETS),$(MAKECMDGOALS)),--only $(name))
+
 verify:
-	$(PYTHON) tools/prepare.py --verify-only $(foreach name,$(filter-out $@,$(MAKECMDGOALS)),--only $(name))
+	$(PYTHON) tools/prepare.py --verify-only $(foreach name,$(filter-out $(ACTION_TARGETS),$(MAKECMDGOALS)),--only $(name))
 
 update:
-	$(PYTHON) tools/update_manifests.py $(foreach name,$(filter-out $@,$(MAKECMDGOALS)),--only $(name))
+	$(PYTHON) tools/update_manifests.py $(foreach name,$(filter-out $(ACTION_TARGETS),$(MAKECMDGOALS)),--only $(name))
 
 check-updates:
-	$(PYTHON) tools/update_manifests.py --check $(foreach name,$(filter-out $@,$(MAKECMDGOALS)),--only $(name))
+	$(PYTHON) tools/update_manifests.py --check $(foreach name,$(filter-out $(ACTION_TARGETS),$(MAKECMDGOALS)),--only $(name))
 
 deploy: prepare
 	@test -f "$(INVENTORY)" || (echo "Missing $(INVENTORY); copy ansible/inventory.example.yaml first" >&2; exit 2)

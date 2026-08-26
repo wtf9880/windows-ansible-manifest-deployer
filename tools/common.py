@@ -80,6 +80,8 @@ def download(url: str, destination: Path, github_token: str | None = None, manif
 
         if not source_path.is_file():
             raise ManifestError(f"Source file not found: {source_path}")
+        if source_path.resolve() == destination.resolve():
+            return sha256_file(source_path)
 
         modes = file_duplicate_mode or ["copy"]
         for mode in modes:

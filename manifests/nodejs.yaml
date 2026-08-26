@@ -1,0 +1,49 @@
+schema: 1
+name: nodejs
+source:
+  - kind: github_release_template
+    repo: nodejs/node
+    tag_regex: '^v\d+\.\d+\.\d+$'
+    include_prereleases: false
+    url_template: 'https://nodejs.org/dist/{version}/node-{version}-win-x64.zip'
+    checksum_url_template: 'https://nodejs.org/dist/{version}/SHASUMS256.txt'
+    checksum_filename_template: 'node-{version}-win-x64.zip'
+    cache_filename: nodejs-win64.zip
+locked:
+  - version: v26.7.0
+    url: https://nodejs.org/dist/v26.7.0/node-v26.7.0-win-x64.zip
+    sha256: d3bd72755141ed32bbcd841228ee81897c8a98d50dfa7dae2179399a0a7c90f8
+    cache_filename: nodejs-win64.zip
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\NodeJS"
+      state: directory
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/nodejs-win64.zip"
+      dest: "{{ remote_cache }}\\nodejs-win64.zip"
+  - name: Unzip the file to target device
+    community.windows.win_unzip:
+      src: "{{ remote_cache }}/nodejs-win64.zip"
+      dest: "C:\\Tools\\NodeJS"
+  - name: Strip extraction subdirectory
+    ansible.windows.win_shell:
+      cmd: |
+        Move-Item -Path "C:\\Tools\\NodeJS\\node-v*-win-x64\\*" -Destination "C:\\Tools\\NodeJS\\" -Force
+        Remove-Item -Path "C:\\Tools\\NodeJS\\node-v*-win-x64\\*" -Force -Recurse
+      #removes: "C:\\Tools\\NodeJS\\node-v*-win-x64"
+      creates: "C:\\Tools\\NodeJS\\node.exe"
+  #- name: Move contents to parent directory (stage 1, copying)
+  #  ansible.windows.win_copy:
+  #    src: "C:\\Tools\\NodeJS\\node-v*-win-x64\\"
+  #    dest: "C:\\Tools\\NodeJS\\"
+  #    remote_src: yes
+  #- name: Move contents to parent directory (stage 2, removing redundant dir)
+  #  ansible.windows.win_file:
+  #    path: "C:\\Tools\\NodeJS\\node-v*-win-x64"
+  #    state: absent
+  - name: Add NodeJS to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\NodeJS"

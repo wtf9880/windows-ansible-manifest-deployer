@@ -111,6 +111,9 @@ def main() -> int:
             raise ManifestError(f"no manifests found in {args.manifests}")
         for path in paths:
             manifest = load_manifest(path)
+            if not manifest.get("source") and not manifest.get("locked"):
+                print(f"skipping  {manifest['name']} (no source or lock)")
+                continue
             new_lock = discover(manifest, token)
             if manifest["locked"] == new_lock:
                 print(f"current   {manifest['name']} {new_lock['version']}")

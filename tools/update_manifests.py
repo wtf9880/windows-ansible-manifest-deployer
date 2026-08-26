@@ -76,6 +76,10 @@ def checksum_file_lock(source: dict[str, Any], token: str | None) -> dict[str, s
     return {"version": f"sha256:{sha256[:12]}", "url": source["url"], "sha256": sha256}
 
 
+def static_file_lock(source: dict[str, Any], token: str | None) -> dict[str, str]:
+    return {"version": "static", "url": source["url"], "sha256": source["sha256"]}
+
+
 def discover(manifest: dict[str, Any], token: str | None) -> dict[str, str]:
     source = manifest["source"]
     kind = source.get("kind")
@@ -85,6 +89,8 @@ def discover(manifest: dict[str, Any], token: str | None) -> dict[str, str]:
         return github_template_lock(source, token)
     if kind == "checksum_file":
         return checksum_file_lock(source, token)
+    if kind == "static_file":
+        return static_file_lock(source, token)
     raise ManifestError(f"{manifest['name']}: unsupported source.kind {kind!r}")
 
 

@@ -75,7 +75,14 @@ def prepare_one(path: Path, cache: Path, verify_only: bool) -> bool:
     temporary.unlink(missing_ok=True)
     print(f"download  {manifest['name']} {manifest['locked']['version']}")
     try:
-        actual = download(manifest["locked"]["url"], temporary, os.getenv("GITHUB_TOKEN"))
+        duplicate_mode = manifest["locked"].get("file_duplicate_mode")
+        actual = download(
+            manifest["locked"]["url"],
+            temporary,
+            os.getenv("GITHUB_TOKEN"),
+            manifest_path=path,
+            duplicate_mode=duplicate_mode
+        )
         if actual != expected:
             raise ManifestError(
                 f"{path}: downloaded SHA-256 mismatch: expected {expected}, got {actual}"

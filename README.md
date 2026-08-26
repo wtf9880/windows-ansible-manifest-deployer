@@ -11,7 +11,7 @@ Prepared downloads and cross-compiled programs live in `Cache/` and are intentio
 
 ## Requirements
 
-The GNU/Linux control host needs Python 3, Make, Zig, and Ansible. Install the small Python and Ansible dependencies if they are not already present:
+The GNU/Linux control host requires Python 3, Make, Zig, Ansible, and Unzip. Install the Python and Ansible dependencies if they are not already present:
 
 ```sh
 python3 -m pip install -r requirements.txt
@@ -69,18 +69,38 @@ tasks:
 
 Supported updater sources are:
 
-- `github_release`: select one GitHub release asset by tag and asset regular expressions.
-- `github_release_template`: discover a GitHub release tag, then derive a vendor URL and read a vendor checksum file. Node.js uses this because its GitHub releases do not contain Windows binaries.
-- `checksum_file`: keep a fixed URL and detect content changes from an upstream checksum list.
+- `github_release`: Selects one GitHub release asset using tag and asset regular expressions. Requires the following fields:
+  - `repo`: The target application repository name (e.g., `"TheWaWaR/simple-http-server"`).
+  - `tag_regex`: Regular expression to match the latest tag. The most recent release matching this regex is selected as the latest version.
+  - `asset_regex`: Regular expression to select the binary file. The first file in the selected release matching this regex is downloaded.
+  - `include_prereleases` (optional, defaults to `false`): Whether to include prereleases in the search.
+- `github_release_template`: Discovers a GitHub release tag, then derives a vendor URL and reads a vendor checksum file. Used for projects like Node.js where GitHub releases do not contain binaries. Requires:
+  - GitHub parameters as specified in `github_release` (except `asset_regex` which is not required).
+  - `url_template`: A template string (supporting `{version}` and `{version_without_v}`) to produce the download URL.
+  - `checksum_url_template`: A template string (supporting `{version}` and `{version_without_v}`) to produce the `SHA256SUM` file URL.
+  - `checksum_filename_template`: A template string (supporting `{version}` and `{version_without_v}`) to produce the filename as it appears in the `SHA256SUM` file.
+- `checksum_file`: Uses a fixed URL and detects changes from an upstream checksum list. Requires:
+  - `url`: The download link for the file.
+  - `checksum_url`: The download link for the `SHA256SUM` file.
+  - `checksum_filename`: The filename within the `SHA256SUM` file.
+  - `duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
+- `static_file`: Repesents a fixed URL that does not change. Requires:
+  - `url`: The download link for the file.
+  - `sha256`: The SHA256 hash of the file.
+  - `duplicate_mode` (optional, defaults to `["copy"]`): See notes below.
 
-The updater uses GitHub's REST API directly. PyYAML rewrites a changed manifest in normalized YAML, so keep explanatory documentation here rather than relying on comments inside manifests.
+URLs can optionally use the `file://` protocol for local downloads.
 
-## Adding another C++ utility
+The `duplicate_mode` field specifies how the downloader should duplicate the source file when using `file://` (disk-to-disk operation). It accepts an array of modes: `"copy"`, `"hardlink"`, or `"symlink"`. This allows for fallbacks; for example, `["hardlink", "copy"]` will attempt a hardlink first and fall back to copy if the source and destination are on different filesystems.
 
-Add `cpp/tool-name.cpp`. The existing pattern rule produces `Cache/tool-name.exe` with:
+The updater uses GitHub's REST API directly. The lock updater script uses PyYAML which rewrites a changed manifest in normalized YAML, so keep explanatory documentation here rather than relying on comments inside manifests.
+
+## Example: Adding another C++ utility
+
+Add `src/tool-name.cpp`. The existing pattern rule(`make compile`) produces `Cache/tool-name.exe` with:
 
 ```sh
 zig c++ -target x86_64-windows-gnu -O2 -s cpp/tool-name.cpp -o Cache/tool-name.exe
 ```
 
-Add a corresponding Ansible task if the utility needs a different destination or service configuration.
+Then add a manifest with a `kind: static_file` source block and `url: file://../Cache/tool-name.exe`, and add a `tasks` block to allow Ansible to deploy it to the target device.

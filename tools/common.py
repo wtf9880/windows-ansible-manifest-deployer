@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import urllib.request
 from pathlib import Path
@@ -55,7 +56,36 @@ def request(url: str, github_token: str | None = None) -> urllib.request.Request
     return urllib.request.Request(url, headers=headers)
 
 
-def download(url: str, destination: Path, github_token: str | None = None) -> str:
+def download(url: str, destination: Path, github_token: str | None = None, manifest_path: Path | None = None, duplicate_mode: list[str] | None = None) -> str:
+    if url.startswith("file://"):
+        path_str = url[7:]
+        if not path_str:
+            raise ManifestError(f"Invalid file:// URL: {url}")
+
+        source_path = Path(path_str)
+        if not source_path.is_absolute():
+            if manifest_path is None:
+                raise ManifestError(f"Relative file:// path {url} requires manifest_path")
+            source_path = (manifest_path.parent / source_path).resolve()
+
+        if not source_path.is_file():
+            raise ManifestError(f"Source file not found: {source_path}")
+
+        modes = duplicate_mode or ["copy"]
+        for mode in modes:
+            try:
+                if mode == "hardlink":
+                    os.link(source_path, destination)
+                elif mode == "symlink":
+                    destination.symlink_to(source_path)
+                elif mode == "copy":
+                    import shutil
+                    shutil.copy2(source_path, destination)
+                return sha256_file(destination)
+            except OSError:
+                continue
+        raise ManifestError(f"Failed to duplicate {source_path} to {destination} using modes {modes}")
+
     digest = hashlib.sha256()
     with urllib.request.urlopen(request(url, github_token), timeout=120) as response:
         with destination.open("wb") as output:

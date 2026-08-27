@@ -11,7 +11,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Iterable
 
-import yaml
+from ruamel.yaml import YAML
 
 USER_AGENT = "windows-manifest-deployer/1.0"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -23,7 +23,8 @@ class ManifestError(ValueError):
     pass
 
 def load_manifest(path: Path, is_updater: bool = False) -> dict[str, Any]:
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    yaml = YAML(typ="safe")
+    data = yaml.load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ManifestError(f"{path}: manifest must be a mapping")
     required = ("schema", "name")

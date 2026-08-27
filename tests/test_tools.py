@@ -4,9 +4,19 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import yaml
+from ruamel.yaml import YAML
 
 from tools.common import ManifestError, load_manifest, parse_checksum_list, selected_paths
+
+
+def _dump_manifest(manifest: dict) -> str:
+    yaml = YAML()
+    yaml.width = 1000
+    import io
+
+    stream = io.StringIO()
+    yaml.dump(manifest, stream)
+    return stream.getvalue()
 
 TASK_KEYWORDS = {
     "action", "args", "become", "become_user", "changed_when", "delegate_to",
@@ -59,7 +69,7 @@ class CommonTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.yaml"
-            path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
+            path.write_text(_dump_manifest(manifest), encoding="utf-8")
             with self.assertRaises(ManifestError):
                 load_manifest(path, is_updater=False)
 
@@ -72,7 +82,7 @@ class CommonTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.yaml"
-            path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
+            path.write_text(_dump_manifest(manifest), encoding="utf-8")
             with self.assertRaises(ManifestError):
                 load_manifest(path, is_updater=True)
 

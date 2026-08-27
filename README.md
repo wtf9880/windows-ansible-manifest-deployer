@@ -120,7 +120,7 @@ The `file_duplicate_mode` field (per source entry) specifies how the downloader 
 
 `source` and `locked` lists must have the same length when both are present.
 
-The updater uses GitHub's REST API directly. The lock updater script uses PyYAML which rewrites a changed manifest in normalized YAML, so keep explanatory documentation here rather than relying on comments inside manifests.
+The updater uses GitHub's REST API directly. The lock updater script uses ruamel.yaml which preserves comments and formatting (except for the rewritten `locked` block, whose previous comments may be discarded).
 
 ## Example: Adding another C++ utility
 

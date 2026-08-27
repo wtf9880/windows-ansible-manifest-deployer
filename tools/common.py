@@ -23,8 +23,14 @@ class ManifestError(ValueError):
     pass
 
 def load_manifest(path: Path, is_updater: bool = False) -> dict[str, Any]:
-    yaml = YAML(typ="safe")
-    data = yaml.load(path.read_text(encoding="utf-8"))
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.width = 1000
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    raw = path.read_text(encoding="utf-8")
+    if raw.lstrip().startswith("---"):
+        yaml.explicit_start = True
+    data = yaml.load(raw)
     if not isinstance(data, dict):
         raise ManifestError(f"{path}: manifest must be a mapping")
     required = ("schema", "name")
@@ -39,15 +45,17 @@ def load_manifest(path: Path, is_updater: bool = False) -> dict[str, Any]:
         raise ManifestError(f"{path}: source must be a list of mappings")
     if not isinstance(locked, list):
         raise ManifestError(f"{path}: locked must be a list of mappings")
-    if source and locked and len(source) != len(locked):
-        raise ManifestError(f"{path}: source and locked must have the same number of entries ({len(source)} vs {len(locked)})")
 
     if is_updater:
         for idx, entry in enumerate(source):
+            if not isinstance(entry, dict):
+                raise ManifestError(f"{path}: source[{idx}] must be a mapping")
             if entry.get("cache_filename") is None:
                 raise ManifestError(f"{path}: source[{idx}].cache_filename is missing")
     else:
         for idx, entry in enumerate(locked):
+            if not isinstance(entry, dict):
+                raise ManifestError(f"{path}: locked[{idx}] must be a mapping")
             if entry.get("cache_filename") is None:
                 raise ManifestError(f"{path}: locked[{idx}].cache_filename is missing")
             digest = str(entry.get("sha256", ""))

@@ -15,9 +15,9 @@ from typing import Any
 from ruamel.yaml import YAML
 
 try:
-    from .common import ManifestError, download, parse_checksum_list, request, selected_paths
+    from .common import ManifestError, download, load_manifest, parse_checksum_list, request, selected_paths
 except ImportError:  # Direct execution: python tools/update_manifests.py
-    from common import ManifestError, download, parse_checksum_list, request, selected_paths
+    from common import ManifestError, download, load_manifest, parse_checksum_list, request, selected_paths
 
 
 def get_text(url: str, token: str | None) -> str:
@@ -109,47 +109,6 @@ def discover(manifest: dict[str, Any], token: str | None) -> list[dict[str, Any]
     return [discover_one(src, token) for src in sources]
 
 
-def _load_manifest_rt(path: Path) -> tuple[Any, YAML, str]:
-    """Load manifest with ruamel.yaml preserving comments.
-
-    Returns (data, yaml_instance, raw_text). Validates similarly to
-    common.load_manifest(is_updater=True) but keeps CommentedMap for
-    round-trip dumping.
-    """
-    raw = path.read_text(encoding="utf-8")
-    yaml = YAML()
-    yaml.preserve_quotes = True
-    yaml.width = 1000
-    # Preserve explicit start (---) if present in original file
-    if raw.lstrip().startswith("---"):
-        yaml.explicit_start = True
-    data = yaml.load(raw)
-    if not isinstance(data, dict):
-        raise ManifestError(f"{path}: manifest must be a mapping")
-    required = ("schema", "name")
-    missing = [key for key in required if key not in data]
-    if missing:
-        raise ManifestError(f"{path}: missing keys: {', '.join(missing)}")
-    if data["schema"] != 1:
-        raise ManifestError(f"{path}: unsupported schema {data['schema']!r}")
-    source = data.get("source", [])
-    locked = data.get("locked", [])
-    if not isinstance(source, list):
-        raise ManifestError(f"{path}: source must be a list of mappings")
-    if not isinstance(locked, list):
-        raise ManifestError(f"{path}: locked must be a list of mappings")
-    if source and locked and len(source) != len(locked):
-        raise ManifestError(
-            f"{path}: source and locked must have the same number of entries ({len(source)} vs {len(locked)})"
-        )
-    for idx, entry in enumerate(source):
-        if not isinstance(entry, dict):
-            raise ManifestError(f"{path}: source[{idx}] must be a mapping")
-        if entry.get("cache_filename") is None:
-            raise ManifestError(f"{path}: source[{idx}].cache_filename is missing")
-    return data, yaml, raw
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Explicitly update manifest lock blocks")
     parser.add_argument("--manifests", type=Path, default=Path("manifests"))
@@ -165,7 +124,7 @@ def main() -> int:
         if not paths:
             raise ManifestError(f"no manifests found in {args.manifests}")
         for path in paths:
-            manifest, yaml, _raw = _load_manifest_rt(path)
+            manifest = load_manifest(path, is_updater=True)
             sources: list[dict[str, Any]] = manifest.get("source", []) or []
             locked: list[dict[str, Any]] = manifest.get("locked", []) or []
             if not sources and not locked:
@@ -200,6 +159,13 @@ def main() -> int:
                         manifest["locked"] = new_locks
                 # Ensure source stays as list
                 #manifest["source"] = sources
+                yaml = YAML()
+                yaml.preserve_quotes = True
+                yaml.width = 1000
+                yaml.indent(mapping=2, sequence=4, offset=2)
+                raw = path.read_text(encoding="utf-8")
+                if raw.lstrip().startswith("---"):
+                    yaml.explicit_start = True
                 yaml.dump(manifest, path)
         if args.check and updates:
             print(f"{updates} update(s) available")

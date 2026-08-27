@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import re
@@ -100,7 +101,12 @@ def discover_one(source: dict[str, Any], token: str | None) -> dict[str, Any]:
         "cache_filename": source["cache_filename"],
     }
     if "file_duplicate_mode" in source:
-        lock["file_duplicate_mode"] = source["file_duplicate_mode"]
+        # Copy the sequence to avoid sharing the same object between source
+        # and locked; ruamel.yaml would otherwise emit an anchor/alias
+        # (&id001 / *id001) for the shared list. Use copy.copy to preserve
+        # ruamel.yaml formatting (flow vs block) while creating a distinct
+        # object.
+        lock["file_duplicate_mode"] = copy.copy(source["file_duplicate_mode"])
     return lock
 
 

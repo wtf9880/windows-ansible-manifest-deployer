@@ -43,7 +43,7 @@ tasks:
   #  ansible.windows.win_file:
   #    path: "C:\\Tools\\NodeJS\\node-v*-win-x64"
   #    state: absent
-  - name: Add NodeJS to PATH
+  - name: Add to PATH
     ansible.windows.win_path:
       elements:
         - "C:\\Tools\\NodeJS"

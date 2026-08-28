@@ -91,7 +91,9 @@
       loop: "{{ app_manifests }}"
       loop_control:
         loop_var: manifest
-      when: (manifest.name + ".lock") not in done_files.files | map(attribute='path') | map('basename') | list
+      when:
+        - manifest.enabled | default(true)
+        - (manifest.name + ".lock") not in done_files.files | map(attribute='path') | map('basename') | list
 
 
     #- name: Install portable zip applications

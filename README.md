@@ -2,7 +2,7 @@
 
 This repository separates **discovery** from **preparation**:
 
-- `manifests/*.yaml` describes how an updater can discover releases and contains pinned `locked` URLs and SHA-256s. Both `source` and `locked` are lists, so one manifest can manage multiple artifacts.
+- `manifests/*.yaml` describes how an updater can discover releases and contains pinned `locked` URLs and SHA-256s. Both `source` and `locked` are lists, so one manifest can manage multiple artifacts. It can also have an optional `enabled: true/false` field; if `false`, the manifest is skipped during deployment.
 - `make prepare` uses only the pinned `locked` list. It never checks for a newer version.
 - `make update` queries the declared upstreams and rewrites `locked` lists when newer artifacts are found.
 - `make deploy` prepares local artifacts, then deploys them to a Windows x86-64 host with Ansible over WinRM.
@@ -53,6 +53,7 @@ The playbook extracts portable archives below `C:\Tools`, copies standalone exec
 
 ```yaml
 schema: 1
+enabled: true
 name: neovim
 # Discovery entries - each describes one upstream artifact (omit for feature-only manifests)
 source:

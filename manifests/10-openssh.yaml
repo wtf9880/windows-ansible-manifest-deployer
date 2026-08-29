@@ -1,0 +1,124 @@
+# https://docs.ansible.com/projects/ansible/latest/collections/ansible/windows/win_capability_module.html
+---
+schema: 1
+name: openssh
+source:
+  - kind: github_release
+    repo: PowerShell/Win32-OpenSSH
+    asset_regex: '^OpenSSH-Win64\.zip$'
+    include_prereleases: false
+    cache_filename: openssh-win64.zip
+  - kind: static_file
+    url: "file://../Files/administrators_authorized_keys"
+    sha256: SKIP
+    file_duplicate_mode: ["symlink"]
+    cache_filename: administrators_authorized_keys
+locked:
+  - version: 10.0.0.0p2-Preview
+    url: https://github.com/PowerShell/Win32-OpenSSH/releases/download/10.0.0.0p2-Preview/OpenSSH-Win64.zip
+    sha256: 23f50f3458c4c5d0b12217c6a5ddfde0137210a30fa870e98b29827f7b43aba5
+    cache_filename: openssh-win64.zip
+  - version: static
+    url: "file://../Files/administrators_authorized_keys"
+    sha256: SKIP
+    cache_filename: administrators_authorized_keys
+    file_duplicate_mode: ["symlink"]
+tasks:
+  - name: Check if OpenSSH service is already registered
+    ansible.windows.win_service_info:
+      name: sshd
+    register: openssh_service_info
+  - name: Installation tasks (skipped if already installed)
+    when: not openssh_service_info.exists
+    block:
+      - name: Stage pinned artifacts on the target
+        ansible.windows.win_copy:
+          src: "{{ local_cache }}/openssh-win64.zip"
+          dest: "{{ remote_cache }}\\openssh-win64.zip"
+      - name: Extract OpenSSH archive
+        community.windows.win_unzip:
+          src: "{{ remote_cache }}\\openssh-win64.zip"
+          dest: 'C:\Program Files'
+      - name: Strip extraction subdirectory
+        ansible.windows.win_shell:
+          cmd: |
+            Move-Item -Path "C:\\Program Files\\OpenSSH-Win64" -Destination "C:\\Program Files\\OpenSSH" -Force
+          creates: "C:\\Program Files\\OpenSSH"
+          removes: "C:\\Program Files\\OpenSSH-Win64"
+      - name: Run OpenSSH install script
+        ansible.windows.win_powershell:
+          chdir: "C:\\Program Files\\OpenSSH"
+          script: |
+            & .\install-sshd.ps1
+      - name: Ensure SSH host keys and permissions are generated
+        ansible.windows.win_powershell:
+          chdir: "C:\\Program Files\\OpenSSH"
+          script: |
+            # Fix-HostFilePermissions sets strict ACLs on sshd configuration and keys
+            if (Test-Path .\FixHostFilePermissions.ps1) {
+                .\FixHostFilePermissions.ps1 -Confirm:$false
+            }
+  - name: Add OpenSSH to system PATH environment variable
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Program Files\\OpenSSH"
+      state: present
+  - name: Allow OpenSSH port in Windows Firewall (Port 22)
+    community.windows.win_firewall_rule:
+      name: OpenSSH-Server-In-TCP
+      localport: 22
+      action: allow
+      direction: in
+      protocol: tcp
+      state: present
+      enabled: true
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/administrators_authorized_keys"
+      dest: "C:\\ProgramData\\ssh\\administrators_authorized_keys"
+    register: copy_authorized_keys_result
+  - name: Configure sshd service
+    ansible.windows.win_service:
+      name: sshd
+      start_mode: auto
+  - name: Post authorized_keys change (skipped if did not changed)
+    when: copy_authorized_keys_result.changed
+    block:
+      - name: Set strict ACLs on administrators_authorized_keys (Disable Inheritance)
+        ansible.windows.win_acl_inheritance:
+          path: "C:\\ProgramData\\ssh\\administrators_authorized_keys"
+          state: absent
+          reorganize: false
+      - name: Grant full control only to SYSTEM and Administrators
+        ansible.windows.win_acl:
+          path: "C:\\ProgramData\\ssh\\administrators_authorized_keys"
+          user: "{{ item }}"
+          rights: FullControl
+          type: allow
+          state: present
+        loop:
+          - 'NT AUTHORITY\SYSTEM'
+          - 'BUILTIN\Administrators'
+      - name: Remove all other user permissions from administrators_authorized_keys
+        ansible.windows.win_powershell:
+          script: |
+            $path = "C:\\ProgramData\\ssh\\administrators_authorized_keys"
+            $acl = Get-Acl -Path $path
+            # Remove any rule that does not belong to SYSTEM or Administrators
+            $rulesToRemove = $acl.Access | Where-Object {
+                $_.IdentityReference -notmatch 'NT AUTHORITY\\SYSTEM' -and
+                $_.IdentityReference -notmatch 'BUILTIN\\Administrators'
+            }
+            foreach ($rule in $rulesToRemove) {
+                $acl.RemoveAccessRule($rule) | Out-Null
+            }
+            Set-Acl -Path $path -AclObject $acl
+      - name: Restart My Windows Service if file changed
+        ansible.windows.win_service:
+          name: sshd
+          state: restarted
+  - name: Make sure windows services is started
+    when: not copy_authorized_keys_result.changed
+    ansible.windows.win_service:
+      name: sshd
+      state: started

@@ -95,6 +95,9 @@ def _check_locked_artifacts(
 
 def prepare_one(path: Path, cache: Path, verify_only: bool) -> bool:
     manifest = load_manifest(path, is_updater=False)
+    if manifest.get("enabled") is False:
+        print(f"skipping  {manifest.get('name', path.stem)} (disabled)")
+        return False
     locked_list: list[dict[str, Any]] = manifest.get("locked") or []
     source_list: list[dict[str, Any]] = manifest.get("source") or []
     if not source_list and not locked_list:

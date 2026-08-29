@@ -132,6 +132,9 @@ def main() -> int:
             raise ManifestError(f"no manifests found in {args.manifests}")
         for path in paths:
             manifest = load_manifest(path, is_updater=True)
+            if manifest.get("enabled") is False:
+                print(f"skipping  {manifest['name']} (disabled)")
+                continue
             sources: list[dict[str, Any]] = manifest.get("source", []) or []
             locked: list[dict[str, Any]] = manifest.get("locked", []) or []
             if not sources and not locked:

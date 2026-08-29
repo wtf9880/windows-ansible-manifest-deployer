@@ -93,7 +93,7 @@ Supported updater sources are (fields listed per **source entry**):
 
 - `github_release`: Selects one GitHub release asset using tag and asset regular expressions. Requires the following fields:
   - `repo`: The target application repository name (e.g., `"TheWaWaR/simple-http-server"`).
-  - `tag_regex`: Regular expression to match the latest tag. The most recent release matching this regex is selected as the latest version.
+  - `tag_regex` (optional): Regular expression to match the latest tag. The most recent release matching this regex is selected as the latest version. If omitted or empty, the latest release is selected.
   - `asset_regex`: Regular expression to select the binary file. The first file in the selected release matching this regex is downloaded.
   - `include_prereleases` (optional, defaults to `false`): Whether to include prereleases in the search.
   - `cache_filename`: The filename of downloaded file in the "Cache/" directory

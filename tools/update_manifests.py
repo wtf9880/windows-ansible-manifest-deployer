@@ -32,14 +32,15 @@ def get_json(url: str, token: str | None) -> Any:
 
 def select_release(source: dict[str, Any], token: str | None) -> dict[str, Any]:
     releases = get_json(f"https://api.github.com/repos/{source['repo']}/releases?per_page=100", token)
-    pattern = re.compile(source["tag_regex"])
+    tag_regex = source.get("tag_regex")
+    pattern = re.compile(tag_regex) if tag_regex else None
     include_prereleases = bool(source.get("include_prereleases", False))
     for release in releases:
         if release.get("draft") or (release.get("prerelease") and not include_prereleases):
             continue
-        if pattern.fullmatch(release["tag_name"]):
+        if pattern is None or pattern.fullmatch(release["tag_name"]):
             return release
-    raise ManifestError(f"{source['repo']}: no release matched {source['tag_regex']!r}")
+    raise ManifestError(f"{source['repo']}: no release matched {tag_regex!r}")
 
 
 def hash_url(url: str, token: str | None) -> str:

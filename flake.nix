@@ -24,6 +24,7 @@
               zig
               mono
               unzip
+              yamllint
             ];
           };
         }

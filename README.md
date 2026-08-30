@@ -99,9 +99,9 @@ Supported updater sources are (fields listed per **source entry**):
   - `cache_filename`: The filename of downloaded file in the "Cache/" directory
 - `github_release_template`: Discovers a GitHub release tag, then derives a vendor URL and reads a vendor checksum file. Used for projects like Node.js where GitHub releases do not contain binaries. Requires:
   - GitHub parameters as specified in `github_release` (except `asset_regex` which is not required).
-  - `url_template`: A template string (supporting `{version}` and `{version_without_v}`) to produce the download URL.
-  - `checksum_url_template`: A template string (supporting `{version}` and `{version_without_v}`) to produce the `SHA256SUM` file URL.
-  - `checksum_filename_template`: A template string (supporting `{version}` and `{version_without_v}`) to produce the filename as it appears in the `SHA256SUM` file.
+  - `url_template`: A template string (supporting `{version}` and `{version_without_prefix}`) to produce the download URL.
+  - `checksum_url_template`: A template string (supporting `{version}` and `{version_without_prefix}`) to produce the `SHA256SUM` file URL.
+  - `checksum_filename_template`: A template string (supporting `{version}` and `{version_without_prefix}`) to produce the filename as it appears in the `SHA256SUM` file.
   - `cache_filename`: The filename of downloaded file in the "Cache/" directory
 - `checksum_file`: Uses a fixed URL and detects changes from an upstream checksum list. Requires:
   - `url`: The download link for the file.

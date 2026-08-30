@@ -65,7 +65,7 @@ def github_asset_lock(source: dict[str, Any], token: str | None) -> dict[str, st
 
 def github_template_lock(source: dict[str, Any], token: str | None) -> dict[str, str]:
     version = select_release(source, token)["tag_name"]
-    values = {"version": version, "version_without_v": version.removeprefix("v")}
+    values = {"version": version, "version_without_prefix": m.group(0) if (m := re.search(r'\d.*', v)) else v}
     url = source["url_template"].format(**values)
     checksum_url = source["checksum_url_template"].format(**values)
     checksum_filename = source["checksum_filename_template"].format(**values)

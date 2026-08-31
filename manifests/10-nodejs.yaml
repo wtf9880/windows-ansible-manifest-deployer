@@ -23,17 +23,20 @@ tasks:
     ansible.windows.win_copy:
       src: "{{ local_cache }}/nodejs-win64.zip"
       dest: "{{ remote_cache }}\\nodejs-win64.zip"
+    register: nodejs_zip_copy_result
   - name: Unzip the file to target device
     community.windows.win_unzip:
       src: "{{ remote_cache }}/nodejs-win64.zip"
       dest: "C:\\Tools\\NodeJS"
+    when: nodejs_zip_copy_result.changed
   - name: Strip extraction subdirectory
     ansible.windows.win_shell:
       cmd: |
         Move-Item -Path "C:\\Tools\\NodeJS\\node-v*-win-x64\\*" -Destination "C:\\Tools\\NodeJS\\" -Force
-        Remove-Item -Path "C:\\Tools\\NodeJS\\node-v*-win-x64\\*" -Force -Recurse
+        Remove-Item -Path "C:\\Tools\\NodeJS\\node-v*-win-x64" -Force -Recurse
       #removes: "C:\\Tools\\NodeJS\\node-v*-win-x64"
       creates: "C:\\Tools\\NodeJS\\node.exe"
+    when: nodejs_zip_copy_result.changed
   #- name: Move contents to parent directory (stage 1, copying)
   #  ansible.windows.win_copy:
   #    src: "C:\\Tools\\NodeJS\\node-v*-win-x64\\"

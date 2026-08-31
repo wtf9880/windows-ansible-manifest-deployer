@@ -1,0 +1,32 @@
+schema: 1
+name: 7zip
+source:
+  - kind: github_release
+    repo: ip7z/7zip
+    tag_regex: '^\d+\.\d+$'
+    asset_regex: '^7z\d+-x64\.exe$'
+    include_prereleases: false
+    cache_filename: 7z-x64.exe
+locked:
+  - version: '26.02'
+    url: https://github.com/ip7z/7zip/releases/download/26.02/7z2602-x64.exe
+    sha256: 6745fa76dc2ea031596d8678f6f6b99c3c1b435b4164a63485adbbc7b8d82ef0
+    cache_filename: 7z-x64.exe
+tasks:
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/7z-x64.exe"
+      dest: "{{ remote_cache }}\\7z-x64.exe"
+    register: copy_7zip_result
+  - name: Install
+    ansible.windows.win_package:
+      path: "{{ remote_cache }}\\7z-x64.exe"
+      creates_path: "C:\\Program Files\\7-Zip\\7z.exe"
+      #creates_version: 16.04
+      arguments: /S
+      state: present
+    when: copy_7zip_result.changed
+  - name: Add to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Program Files\\7-Zip"

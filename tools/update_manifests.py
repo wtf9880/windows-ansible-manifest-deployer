@@ -40,7 +40,12 @@ def select_release(source: dict[str, Any], token: str | None) -> dict[str, Any]:
             continue
         if pattern is None or pattern.fullmatch(release["tag_name"]):
             return release
-    raise ManifestError(f"{source['repo']}: no release matched {tag_regex!r}")
+
+    tags = get_json(f"https://api.github.com/repos/{source['repo']}/tags?per_page=100", token)
+    for tag in tags:
+        if pattern is None or pattern.fullmatch(tag["name"]):
+            return {"tag_name": tag["name"], "assets": []}
+    raise ManifestError(f"{source['repo']}: no release or tag matched {tag_regex!r}")
 
 
 def hash_url(url: str, token: str | None) -> str:
@@ -65,7 +70,7 @@ def github_asset_lock(source: dict[str, Any], token: str | None) -> dict[str, st
 
 def github_template_lock(source: dict[str, Any], token: str | None) -> dict[str, str]:
     version = select_release(source, token)["tag_name"]
-    values = {"version": version, "version_without_prefix": m.group(0) if (m := re.search(r'\d.*', v)) else v}
+    values = {"version": version, "version_without_prefix": m.group(0) if (m := re.search(r'\d.*', version)) else version}
     url = source["url_template"].format(**values)
     checksum_url = source["checksum_url_template"].format(**values)
     checksum_filename = source["checksum_filename_template"].format(**values)

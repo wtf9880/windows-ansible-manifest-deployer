@@ -1,0 +1,96 @@
+---
+# https://gist.github.com/ergin/907a957d3db10675913aef41616d14ef
+# https://community.chocolatey.org/packages/mongodb
+# https://community.chocolatey.org/packages/mongodb.portable
+# https://community.chocolatey.org/packages/mongodb-shell
+# https://www.mongodb.com/docs/v7.0/tutorial/install-mongodb-on-windows-zip/#std-label-install-mdb-community-windows-zip
+# https://stackoverflow.com/questions/4661670/cannot-start-mongodb-as-a-service
+# https://www.xuchao.org/docs/mongodb/reference/program/mongod.exe.html
+schema: 1
+name: mongodb
+source:
+  - kind: github_release_template
+    repo: mongodb/mongo
+    tag_regex: '^r\d+\.\d+\.\d+$'
+    include_prereleases: false
+    #url_template: 'https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-{version_without_prefix}-signed.msi'
+    url_template: 'https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-{version_without_prefix}.zip'
+    checksum_url_template: 'https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-{version_without_prefix}.zip.sha256'
+    checksum_filename_template: 'mongodb-windows-x86_64-{version_without_prefix}.zip'
+    cache_filename: mongodb-windows-x86_64.zip
+locked:
+  - version: r8.3.8
+    url: https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-8.3.8.zip
+    sha256: ee5ce6bfd690a2ff957e5db75363731ed8349e8c5502f997c705948fa0a50dbe
+    cache_filename: mongodb-windows-x86_64.zip
+tasks:
+  - name: Create directories if it does not exist
+    ansible.windows.win_file:
+      path: "{{ item }}"
+      state: directory
+    loop:
+      - "C:\\Tools\\MongoDB"
+      - "C:\\Tools\\MongoDB\\data"
+      - "C:\\Tools\\MongoDB\\log"
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/mongodb-windows-x86_64.zip"
+      dest: "{{ remote_cache }}\\mongodb-windows-x86_64.zip"
+    register: mongodb_zip_copy_result
+  - name: Unzip the file to target device
+    community.windows.win_unzip:
+      src: "{{ remote_cache }}/mongodb-windows-x86_64.zip"
+      dest: "C:\\Tools\\MongoDB"
+    when: mongodb_zip_copy_result.changed
+  - name: Strip extraction subdirectory
+    ansible.windows.win_shell:
+      cmd: |
+        Move-Item -Path "C:\\Tools\\MongoDB\\mongodb-win32-x86_64-windows-*\\*" -Destination "C:\\Tools\\MongoDB\\" -Force
+        Remove-Item -Path "C:\\Tools\\MongoDB\\mongodb-win32-x86_64-windows-*" -Force -Recurse
+      creates: "C:\\Tools\\MongoDB\\bin\\mongod.exe"
+    when: mongodb_zip_copy_result.changed
+  - name: Check if the Windows service exists
+    ansible.windows.win_service:
+      name: "MongoDB"
+    register: mongodb_service_check
+    failed_when: false
+  - name: Install Visual C++ Redistributable (Idempotent via creates_path)
+    ansible.windows.win_package:
+      path: "C:\\Tools\\MongoDB\\bin\\vc_redist.x64.exe"
+      #product_id: '{43B0D101-A022-48F4-9D04-BA404CEB1D53}'
+      #product_id: '{86AB2CC9-08BD-4643-B0F9-F82D006D72FF}'
+      creates_path: 'C:\Windows\System32\vcruntime140.dll'
+      arguments: '/install /quiet /norestart'
+      state: present
+    when: not mongodb_service_check.exists
+  # TODO: should use `--reinstall` when "mongodb_zip_copy_result.changed"?
+  - name: Register the Windows service
+    ansible.windows.win_command: >
+      "C:\\Tools\\MongoDB\\bin\\mongod.exe"
+      --serviceName "MongoDB"
+      --serviceDisplayName "MongoDB Server"
+      --dbpath "C:\Tools\MongoDB\data"
+      --logpath "C:\Tools\MongoDB\log\mongod.log"
+      --install
+    #ansible.windows.win_command: >
+    #  "C:\\Tools\\MongoDB\\bin\\mongod.exe"
+    #  --serviceName "MongoDB"
+    #  --serviceDisplayName "MongoDB Server"
+    #  --install
+    when: not mongodb_service_check.exists
+  - name: Ensure the service is running and set to auto-start
+    ansible.windows.win_service:
+      name: "MongoDB"
+      state: started
+      start_mode: auto
+  - name: Restart the Windows service when upgraded to new version
+    ansible.windows.win_service:
+      name: "MongoDB"
+      state: restarted
+    when: mongodb_zip_copy_result.changed
+  - name: Add to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\MongoDB\\bin"
+
+

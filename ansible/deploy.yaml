@@ -25,11 +25,25 @@
       delegate_to: localhost
       run_once: true
 
+    - name: Check which manifests/apps are already configured/installed
+      ansible.builtin.find:
+        paths: "{{ local_done_dir }}"
+        patterns: "*.lock"
+      register: done_files
+      delegate_to: localhost
+      run_once: true
     - name: Load deployment manifests
+      vars:
+        _manifest: "{{ lookup('ansible.builtin.file', item) | from_yaml }}"
       ansible.builtin.set_fact:
         app_manifests: >-
-          {{ (app_manifests | default([])) +
-             [(lookup('ansible.builtin.file', item) | from_yaml)] }}
+          {{
+            (app_manifests | default([])) +
+            ([_manifest] if (
+              (_manifest.enabled | default(true) | bool) and
+              ((_manifest.name + '.lock') not in (done_files.files | map(attribute='path') | map('basename') | list))
+            ) else [])
+          }}
       loop: "{{ manifest_paths }}"
       no_log: true
 
@@ -39,7 +53,6 @@
       loop: "{{ app_manifests | subelements('locked', skip_missing=True) }}"
       loop_control:
         label: "{{ item.0.name }}:{{ item.1.cache_filename }}"
-      when: item.0.enabled | default(true) | bool
       delegate_to: localhost
       register: prepared_artifacts
       failed_when:
@@ -80,21 +93,11 @@
     #    loop_control:
     #      loop_var: manifest_file
 
-    - name: Check which manifests/apps are already configured/installed
-      ansible.builtin.find:
-        paths: "{{ local_done_dir }}"
-        patterns: "*.lock"
-      register: done_files
-      delegate_to: localhost
-      run_once: true
     - name: Install each app
       ansible.builtin.include_tasks: tasks/_install_from_manifest.yaml
       loop: "{{ app_manifests }}"
       loop_control:
         loop_var: manifest
-      when:
-        - manifest.enabled | default(true) | bool
-        - (manifest.name + ".lock") not in done_files.files | map(attribute='path') | map('basename') | list
 
 
     #- name: Install portable zip applications

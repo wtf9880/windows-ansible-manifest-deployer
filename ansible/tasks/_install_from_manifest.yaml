@@ -12,7 +12,7 @@
 - name: Dump manifest's tasks section back to disk as a real task file
   ansible.builtin.copy:
     dest: "{{ tmp_task_file.path }}"
-    content: "{{ manifest.tasks | to_nice_yaml }}"
+    content: "{{ manifest.tasks | to_nice_yaml(width=1000) }}"
   delegate_to: localhost
   run_once: true
 

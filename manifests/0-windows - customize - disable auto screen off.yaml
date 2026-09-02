@@ -1,0 +1,10 @@
+---
+schema: 1
+name: WindowsFeature-disableAutoSleepAndHibernate
+#enabled: false
+tasks:
+  - name: disable auto screen turn-off
+    ansible.windows.win_command: "powercfg /change {{ item }} 0"
+    loop:
+      - monitor-timeout-ac
+      - monitor-timeout-dc

@@ -1,0 +1,12 @@
+---
+schema: 1
+name: WindowsFeature-disableAutoSleepAndHibernate
+#enabled: false
+tasks:
+  - name: Disable all sleep and hibernate timeouts
+    ansible.windows.win_command: "powercfg /change {{ item }} 0"
+    loop:
+      - standby-timeout-ac
+      - standby-timeout-dc
+      - hibernate-timeout-ac
+      - hibernate-timeout-dc

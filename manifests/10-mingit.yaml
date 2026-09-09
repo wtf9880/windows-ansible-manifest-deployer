@@ -1,0 +1,33 @@
+schema: 1
+name: mingit
+source:
+  - kind: github_release
+    repo: git-for-windows/git
+    tag_regex: '^v2\.\d+\..*$'
+    asset_regex: '^MinGit-.*-busybox-64-bit\.zip$'
+    include_prereleases: false
+    cache_filename: MinGit-busybox-win64.zip
+locked:
+  - version: v2.55.0.windows.5
+    url: https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.5/MinGit-2.55.0.5-busybox-64-bit.zip
+    sha256: a0287b54d3ead0c5abd0d15094f5b4c909867aae6bf8b9f2aee7109d24fa0081
+    cache_filename: MinGit-busybox-win64.zip
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\MinGit"
+      state: directory
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/MinGit-busybox-win64.zip"
+      dest: "{{ remote_cache }}\\MinGit-busybox-win64.zip"
+    register: mingit_zip_copy_result
+  - name: Unzip the file to target device
+    community.windows.win_unzip:
+      src: "{{ remote_cache }}/MinGit-busybox-win64.zip"
+      dest: "C:\\Tools\\MinGit"
+    when: mingit_zip_copy_result.changed
+  - name: Add to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\MinGit\\cmd"

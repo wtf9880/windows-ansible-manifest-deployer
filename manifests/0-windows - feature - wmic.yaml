@@ -1,0 +1,43 @@
+---
+schema: 1
+name: windowsFeatureWMIC
+source:
+  - kind: static_file
+    sha256: SKIP
+    file_duplicate_mode: ["symlink"]
+    url: file://../Files/WMIC.zip
+    cache_filename: WMIC.zip
+locked:
+  - version: static
+    url: file://../Files/WMIC.zip
+    sha256: SKIP
+    cache_filename: WMIC.zip
+    file_duplicate_mode: ["symlink"]
+tasks:
+  # https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/features-on-demand-non-language-fod?view=windows-11#wmic
+  # https://learn.microsoft.com/en-us/azure/virtual-desktop/windows-11-language-packs
+  # https://www.winhelponline.com/blog/install-feature-on-demand-package-offline/
+  # https://github.com/IrrevocableNoob/RSAT-FOD-Offline-Install
+  # https://ntlite.com/community/threads/wmic-missing-on-windows-11-24h2.4847/
+  # the iso file specified in "https://learn.microsoft.com/en-us/azure/virtual-desktop/windows-11-language-packs#prerequisites" (Languages and Optional Features ISO) and extract "LanguagesAndOptionalFeatures/Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35*" and "LanguagesAndOptionalFeatures/metadata" directory and put then in a zip file in "Files/WMIC.zip"(without any subdirectory)
+  - name: Create directories if it does not exist
+    ansible.windows.win_file:
+      path: "{{ remote_cache }}\\WMIC"
+      state: directory
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/WMIC.zip"
+      dest: "{{ remote_cache }}\\WMIC.zip"
+    register: wmic_zip_copy_result
+  - name: Unzip the file to target device
+    community.windows.win_unzip:
+      src: "{{ remote_cache }}\\WMIC.zip"
+      dest: "{{ remote_cache }}\\WMIC"
+    when: wmic_zip_copy_result.changed
+  - name: Install WMIC Capability using the local source
+    ansible.windows.win_capability:
+      name: WMIC~~~~
+      source:
+        - "{{ remote_cache }}\\WMIC"
+      disable_windows_update: true
+      state: present

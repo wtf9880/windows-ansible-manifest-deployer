@@ -59,6 +59,16 @@
         - prepared_artifacts.stat is defined
         - not prepared_artifacts.stat.exists
 
+    # https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/first_found_lookup.html
+    # TODO: from "https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/include_vars_module.html" -> "If loading a directory, the files are sorted alphabetically before being loaded"
+    - name: Include custom variables(if exists)
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      with_first_found:
+        - files:
+          - ../Files/vars.yaml
+          skip: True
+
     - name: Ensure remote working directories exist
       ansible.windows.win_file:
         path: "{{ item }}"

@@ -39,7 +39,7 @@ tasks:
     register: mongodb_zip_copy_result
   - name: Unzip the file to target device
     community.windows.win_unzip:
-      src: "{{ remote_cache }}/mongodb-windows-x86_64.zip"
+      src: "{{ remote_cache }}\\mongodb-windows-x86_64.zip"
       dest: "C:\\Tools\\MongoDB"
     when: mongodb_zip_copy_result.changed
   - name: Strip extraction subdirectory

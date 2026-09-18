@@ -1,5 +1,6 @@
 schema: 1
 name: winsw-v2
+enabled: false
 source:
   - kind: github_release
     repo: winsw/winsw

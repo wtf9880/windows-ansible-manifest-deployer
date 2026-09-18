@@ -41,7 +41,7 @@ tasks:
   #  ansible.windows.win_file:
   #    path: "C:\\Tools\\Neovim\\nvim-win64"
   #    state: absent
-  - name: Add Neovim to PATH
+  - name: Add to PATH
     ansible.windows.win_path:
       elements:
         - "C:\\Tools\\Neovim\\bin"

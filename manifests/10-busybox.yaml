@@ -20,7 +20,7 @@ tasks:
     ansible.windows.win_copy:
       src: "{{ local_cache }}/busybox.exe"
       dest: "C:\\Tools\\BusyBox\\busybox.exe"
-  - name: Add Busybox to PATH
+  - name: Add to PATH
     ansible.windows.win_path:
       elements:
         - "C:\\Tools\\BusyBox"

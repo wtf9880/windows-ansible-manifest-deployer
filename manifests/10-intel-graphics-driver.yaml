@@ -1,0 +1,34 @@
+schema: 1
+name: intelgraphicsdriver
+enabled: false
+source:
+  - kind: static_file
+    url: https://downloadmirror.intel.com/916846/gfx_win_101.2141.exe
+    sha256: a88862682e00bc203cf4be9ff6057e400e94a1dcca48e1f07a67718f5b99c423
+    cache_filename: gfx_win.exe
+locked:
+  - version: static
+    url: https://downloadmirror.intel.com/916846/gfx_win_101.2141.exe
+    sha256: a88862682e00bc203cf4be9ff6057e400e94a1dcca48e1f07a67718f5b99c423
+    cache_filename: gfx_win.exe
+tasks:
+  # https://www.intel.com/content/www/us/en/support/articles/000090440/graphics.html
+  # https://github.com/bcurran3/ChocolateyPackages/blob/main/intel-11th-14th-gen-processor-graphics/tools/ChocolateyInstall.ps1
+  # https://github.com/BeetMan/gpu-driver-downloader/blob/master/download_gpu_drivers.ps1
+  # https://github.com/supermarsx/autoderiva
+  # https://www.intel.com/content/www/us/en/download/776137/intel-7th-10th-gen-processor-graphics-windows.html
+  # not tested yet
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/gfx_win.exe"
+      dest: "{{ remote_cache }}\\gfx_win.exe"
+    register: copy_7zip_result
+  - name: Install
+    ansible.windows.win_package:
+      path: "{{ remote_cache }}\\gfx_win.exe"
+      arguments: "--overwrite --silent"
+      state: present
+      # Intel(R) HD Graphics Control Panel Service:
+      #creates_service: "igfxCUIService2.0.0.0"
+      # Intel(R) Content Protection HDCP Service:
+      creates_service: "cplspcon"

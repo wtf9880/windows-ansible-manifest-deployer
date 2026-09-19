@@ -1,0 +1,33 @@
+schema: 1
+name: polodb
+enabled: true
+source:
+  - kind: github_release
+    repo: PoloDB/PoloDB
+    tag_regex: '^\d+\.\d+\.\d+$'
+    asset_regex: 'polodb-win32-x64\.exe'
+    include_prereleases: false
+    cache_filename: polodb-win32-x64.exe
+locked:
+  - version: v5.3.0
+    url: https://github.com/PoloDB/PoloDB/releases/download/v5.3.0/polodb-win32-x64.exe
+    sha256: 2756b94cf8aeecb92993e63494c8b95a36235516bbc77a8bc57aecef771aabbf
+    cache_filename: polodb-win32-x64.exe
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\PoloDB"
+      state: directory
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/polodb-win32-x64.exe"
+      dest: "C:\\Tools\\PoloDB\\polodb-win32-x64.exe"
+  - name: Create Windows directory symlink
+    ansible.windows.win_shell: |
+      cmd /c mklink "C:\\Tools\\PoloDB\\polodb.exe" "polodb-win32-x64.exe"
+    args:
+      creates: "C:\\Tools\\PoloDB\\polodb.exe"
+  - name: Add to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\PoloDB"

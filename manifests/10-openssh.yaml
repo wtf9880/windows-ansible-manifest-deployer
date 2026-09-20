@@ -58,6 +58,14 @@ tasks:
             if (Test-Path .\FixHostFilePermissions.ps1) {
                 .\FixHostFilePermissions.ps1 -Confirm:$false
             }
+  # based on https://docs.ansible.com/projects/ansible/latest/os_guide/windows_ssh.html it's recommended to change default shell to powershell. so uncomment this:
+  #- name: set the default shell to PowerShell
+  #  ansible.windows.win_regedit:
+  #    path: HKLM:\SOFTWARE\OpenSSH
+  #    name: DefaultShell
+  #    data: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+  #    type: string
+  #    state: present
   - name: Add OpenSSH to system PATH environment variable
     ansible.windows.win_path:
       elements:
@@ -117,8 +125,24 @@ tasks:
         ansible.windows.win_service:
           name: sshd
           state: restarted
+  - name: Check if local file exists on controller
+    ansible.builtin.stat:
+      path: ../Files/sshd_config
+    delegate_to: localhost
+    register: sshd_config_stat
+  - name: Execute task only when controller file does not exist
+    when: sshd_config_stat.stat.exists
+    ansible.windows.win_copy:
+      src: ../Files/sshd_config
+      dest: "C:\\ProgramData\\ssh\\sshd_config"
+    register: sshd_config_result
+  - name: Restart My Windows Service if file changed
+    when: sshd_config_result.changed | default(false)
+    ansible.windows.win_service:
+      name: sshd
+      state: restarted
   - name: Make sure windows services is started
-    when: not copy_authorized_keys_result.changed
+    when: (not copy_authorized_keys_result.changed) and (not (sshd_config_result.changed | default(false)))
     ansible.windows.win_service:
       name: sshd
       state: started

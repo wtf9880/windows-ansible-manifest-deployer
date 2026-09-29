@@ -1,0 +1,34 @@
+schema: 1
+name: win32diskimager
+source:
+  - kind: github_release
+    repo: ripper121/Win32DiskImager
+    tag_regex: '^v2\.\d+$'
+    asset_regex: '^Win32DiskImager\.zip$'
+    include_prereleases: false
+    cache_filename: Win32DiskImager.zip
+locked:
+  - version: v2.0
+    url: https://github.com/ripper121/Win32DiskImager/releases/download/v2.0/Win32DiskImager.zip
+    sha256: 66e06d2f6aa136454a801898953ea76dc9bbf9b073eb70364f573870fdbbe763
+    cache_filename: Win32DiskImager.zip
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\Win32DiskImager"
+      state: directory
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/Win32DiskImager.zip"
+      dest: "{{ remote_cache }}\\Win32DiskImager.zip"
+    register: win32diskimager_copy_result
+  - name: Unzip the file to target device
+    when: win32diskimager_copy_result.changed
+    community.windows.win_unzip:
+      src: "{{ remote_cache }}\\Win32DiskImager.zip"
+      dest: "C:\\Tools\\Win32DiskImager"
+  # Uncomment if you want to add it to PATH
+  #- name: Add to PATH
+  #  ansible.windows.win_path:
+  #    elements:
+  #      - "C:\\Tools\\Win32DiskImager"

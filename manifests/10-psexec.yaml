@@ -1,0 +1,27 @@
+---
+schema: 1
+name: psexec
+source:
+  # i'm actually not sure that this link is fixed and does not change:
+  - kind: static_file
+    url: https://live.sysinternals.com/psexec.exe
+    sha256: 078163d5c16f64caa5a14784323fd51451b8c831c73396b967b4e35e6879937b
+    cache_filename: psexec.exe
+locked:
+  - version: static
+    url: https://live.sysinternals.com/psexec.exe
+    sha256: 078163d5c16f64caa5a14784323fd51451b8c831c73396b967b4e35e6879937b
+    cache_filename: psexec.exe
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\PsExec"
+      state: directory
+  - name: Push the file to target device
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/psexec.exe"
+      dest: "C:\\Tools\\PsExec\\psexec.exe"
+  - name: Add to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\PsExec"

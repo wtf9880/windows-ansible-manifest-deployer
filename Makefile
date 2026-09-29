@@ -1,7 +1,7 @@
 PYTHON ?= python3
 ZIG ?= zig
-ANSIBLE ?= ansible
-ANSIBLE_PLAYBOOK ?= ansible-playbook
+ANSIBLE ?= ANSIBLE_DUPLICATE_YAML_DICT_KEY=ignore ansible
+ANSIBLE_PLAYBOOK ?= ANSIBLE_DUPLICATE_YAML_DICT_KEY=ignore ansible-playbook
 INVENTORY ?= ansible/inventory.yaml
 ANSIBLE_ARGS ?=
 ZIG_TARGET ?= x86_64-windows-gnu

@@ -23,7 +23,7 @@ tasks:
       dest: "{{ remote_cache }}\\nvim-win64.zip"
   - name: Unzip the file to target device
     community.windows.win_unzip:
-      src: "{{ remote_cache }}/nvim-win64.zip"
+      src: "{{ remote_cache }}\\nvim-win64.zip"
       dest: "C:\\Tools\\Neovim"
   - name: Strip extraction subdirectory
     ansible.windows.win_shell:

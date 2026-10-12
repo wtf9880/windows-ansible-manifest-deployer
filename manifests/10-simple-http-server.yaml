@@ -2,9 +2,12 @@ schema: 1
 name: simple-http-server
 source:
   - kind: github_release
-    repo: TheWaWaR/simple-http-server
+    #repo: TheWaWaR/simple-http-server
+    #asset_regex: '^x86_64-pc-windows-msvc-simple-http-server\.exe$'
+    # i did forked the repo and added some improvements useful for hosting a SPA application
+    repo: wtf9880/simple-http-server
+    asset_regex: '^simple-http-server-x86_64-pc-windows-msvc\.exe$'
     tag_regex: '^v\d+\.\d+\.\d+$'
-    asset_regex: '^x86_64-pc-windows-msvc-simple-http-server\.exe$'
     include_prereleases: false
     cache_filename: simple-http-server.exe
 locked:

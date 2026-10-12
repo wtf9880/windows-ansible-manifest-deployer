@@ -1,0 +1,82 @@
+---
+schema: 1
+enabled: true
+name: sftpgo
+source:
+  - kind: github_release
+    repo: drakkan/sftpgo
+    tag_regex: '^v2\.\d+\.\d+$'
+    asset_regex: '^sftpgo_v[0-9]+\.[0-9]+\.[0-9]+_windows_portable\.zip$'
+    include_prereleases: false
+    cache_filename: sftpgo-windows-portable.zip
+locked:
+  - version: v2.7.6
+    url: https://github.com/drakkan/sftpgo/releases/download/v2.7.6/sftpgo_v2.7.6_windows_portable.zip
+    sha256: af3994bb690962c7575858aee368a4c1d6fd4748b35770bb0773eb06408d504d
+    cache_filename: sftpgo-windows-portable.zip
+tasks:
+  # Note this manifest is for install only(does not configure firewall, ...)
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/sftpgo-windows-portable.zip"
+      dest: "{{ remote_cache }}\\sftpgo-windows-portable.zip"
+    register: sftpgo_copy_result
+  - name: Ensure directories exists
+    ansible.windows.win_file:
+      path: "{{ item }}"
+      state: directory
+    loop:
+      - "C:\\Tools\\SFTPGo"
+      - "C:\\ProgramData\\SFTPGo"
+      - "C:\\ProgramData\\SFTPGo\\logs"
+  - name: Extract SFTPGo portable archive
+    community.windows.win_unzip:
+      src: "{{ remote_cache }}\\sftpgo-windows-portable.zip"
+      dest: "C:\\Tools\\SFTPGo"
+    when: sftpgo_copy_result.changed
+  - name: Seed the empty users database only on the first deployment
+    ansible.windows.win_copy:
+      src: "C:\\Tools\\SFTPGo\\sftpgo.db"
+      dest: "C:\\ProgramData\\SFTPGo\\sftpgo.db"
+      remote_src: true
+      force: false
+  - name: Check if local file exists on controller
+    ansible.builtin.stat:
+      path: "{{ playbook_dir }}/../Files/sftpgo.json"
+    delegate_to: localhost
+    register: sftpgo_config_stat_result
+  - name: Apply controller-managed SFTPGo configuration
+    when: sftpgo_config_stat_result.stat.exists
+    block:
+      - name: Copy controller-managed SFTPGo configuration
+        ansible.windows.win_copy:
+          src: "{{ playbook_dir }}/../Files/sftpgo.json"
+          dest: "C:\\ProgramData\\SFTPGo\\sftpgo.json"
+        #register: sftpgo_config_copy_result
+      - name: Read users base directory from controller-managed config
+        ansible.builtin.slurp:
+          src: "{{ playbook_dir }}/../Files/sftpgo.json"
+        delegate_to: localhost
+        register: sftpgo_config_raw
+      - name: Ensure SFTPGo users base directory exists from controller config
+        ansible.windows.win_file:
+          path: "{{ ((sftpgo_config_raw.content | b64decode | from_json).get('data_provider', {}).get('users_base_dir', 'C:\\FTP') | default('C:\\FTP', true)) if (sftpgo_config_raw.content is defined) else 'C:\\FTP' }}"
+          state: directory
+  - name: Ensure default FTP users base directory exists when no controller config
+    ansible.windows.win_file:
+      path: "C:\\FTP"
+      state: directory
+    when: not sftpgo_config_stat_result.stat.exists
+  #- name: Show the manual startup command after changes
+  #  ansible.builtin.debug:
+  #    msg: >-
+  #      Start or restart SFTPGo to apply the deployed files:
+  #      & 'C:\Tools\SFTPGo\sftpgo.exe' serve
+  #      --config-dir 'C:\ProgramData\SFTPGo'
+  #      --log-file-path 'C:\ProgramData\SFTPGo\logs\sftpgo.log'
+  #  when: sftpgo_config.changed or (sftpgo_archive_update.result | bool)
+  - name: Add to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\SFTPGo"
+

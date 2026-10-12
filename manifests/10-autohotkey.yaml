@@ -1,0 +1,34 @@
+schema: 1
+name: autohotkey
+source:
+  - kind: github_release
+    repo: AutoHotkey/AutoHotkey
+    tag_regex: '^v\d+\.\d+\.\d+$'
+    asset_regex: '^AutoHotkey_\d+\.\d+\.d+\.zip$'
+    include_prereleases: false
+    cache_filename: AutoHotkey.zip
+locked:
+  - version: 'v2.0.30'
+    url: https://github.com/AutoHotkey/AutoHotkey/releases/download/v2.0.30/AutoHotkey_2.0.30.zip
+    sha256: 1e0ece7ecb2d5646e55758150472677996a57f9db5c83d2996d8b47b9e2f31a4
+    cache_filename: AutoHotkey.zip
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\AutoHotkey"
+      state: directory
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/AutoHotkey.zip"
+      dest: "{{ remote_cache }}\\AutoHotkey.zip"
+    register: copy_autohotkey_result
+  - name: Unzip the file to target device
+    community.windows.win_unzip:
+      src: "{{ remote_cache }}\\AutoHotkey.zip"
+      dest: "C:\\Tools\\AutoHotkey"
+    when: copy_autohotkey_result.changed
+  # Skipped/Commented because there is a "Install.cmd" which will be added to PATH using this
+  #- name: Add to PATH
+  #  ansible.windows.win_path:
+  #    elements:
+  #      - "C:\\Tools\\AutoHotkey"

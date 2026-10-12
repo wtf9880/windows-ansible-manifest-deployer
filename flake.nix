@@ -10,10 +10,10 @@
       # generate a set of attributes for each system
       eachSystem = nixpkgs.lib.genAttrs (import systems);
     in {
-      devShells = eachSystem (system: 
-        let 
+      devShells = eachSystem (system:
+        let
           # Move pkgs here so 'system' is in scope
-          pkgs = import nixpkgs { inherit system; }; 
+          pkgs = import nixpkgs { inherit system; };
         in {
           default = pkgs.mkShell {
             buildInputs = with pkgs; [

@@ -9,7 +9,19 @@
     remote_root: 'C:\ProgramData\manifest-deployer'
     remote_cache: '{{ remote_root }}\cache'
     remote_state: '{{ remote_root }}\state'
-    manifest_paths: "{{ query('ansible.builtin.fileglob', playbook_dir + '/../manifests/*.yaml') }}"
+    # fileglob returns filesystem order (unsorted), so sort explicitly first.
+    _manifest_files: "{{ query('ansible.builtin.fileglob', playbook_dir + '/../manifests/*.yaml') | sort }}"
+    # Deploy in numeric prefix order (0-*, 5-*, 10-*), not plain alphabetical
+    # (which would put 10-* before 5-*). Ties keep the lexical order above.
+    manifest_paths: >-
+      {{
+        (_manifest_files
+         | map('basename') | map('split', '-') | map('first') | map('int') | list)
+        | zip(_manifest_files)
+        | sort(attribute=0)
+        | map('last')
+        | list
+      }}
 
   pre_tasks:
     - name: Ensure local extract directory exists on the controller

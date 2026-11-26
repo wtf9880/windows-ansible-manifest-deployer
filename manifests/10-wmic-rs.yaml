@@ -1,0 +1,33 @@
+schema: 1
+name: wmic-rs
+enabled: true
+source:
+  - kind: github_release
+    repo: wtf9880/wmic-rs
+    tag_regex: '^nightly$'
+    asset_regex: 'wmic-rs-nightly-windows-x86_64\.exe'
+    include_prereleases: true
+    cache_filename: wmic-rs.exe
+locked:
+  - version: nightly
+    url: https://github.com/wtf9880/wmic-rs/releases/download/nightly/wmic-rs-nightly-windows-x86_64.exe
+    sha256: c464b8c62a8beb4fdbe42905caa4062bd0cab559e410ad187749836135f2cd2b
+    cache_filename: wmic-rs.exe
+tasks:
+  - name: Create directory if it does not exist
+    ansible.windows.win_file:
+      path: "C:\\Tools\\wmic-rs"
+      state: directory
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/wmic-rs.exe"
+      dest: "C:\\Tools\\wmic-rs\\wmic-rs.exe"
+  - name: Create Windows directory symlink
+    ansible.windows.win_shell: |
+      cmd /c mklink "C:\\Tools\\wmic-rs\\wmic.exe" "C:\\Tools\\wmic-rs\\wmic-rs.exe"
+    args:
+      creates: "C:\\Tools\\wmic-rs\\wmic.exe"
+  - name: Add to PATH
+    ansible.windows.win_path:
+      elements:
+        - "C:\\Tools\\wmic-rs"

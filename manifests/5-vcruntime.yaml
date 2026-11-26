@@ -1,0 +1,30 @@
+---
+schema: 1
+name: VCRuntime
+enabled: true
+source:
+  # TODO: this should not be static_file as the link may get updated
+  - kind: static_file
+    url: "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    sha256: SKIP
+    cache_filename: vc_redist.x64.exe
+locked:
+  - version: static
+    url: "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    sha256: cc0ff0eb1dc3f5188ae6300faef32bf5beeba4bdd6e8e445a9184072096b713b
+    cache_filename: vc_redist.x64.exe
+tasks:
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/vc_redist.x64.exe"
+      dest: "{{ remote_cache }}\\vc_redist.x64.exe"
+    register: vcruntime_copy_result
+  - name: Install Visual C++ Redistributable (Idempotent via creates_path)
+    #when: vcruntime_copy_result.changed
+    ansible.windows.win_package:
+      path: "{{ remote_cache }}\\vc_redist.x64.exe"
+      #product_id: '{43B0D101-A022-48F4-9D04-BA404CEB1D53}'
+      #product_id: '{86AB2CC9-08BD-4643-B0F9-F82D006D72FF}'
+      creates_path: 'C:\Windows\System32\vcruntime140.dll'
+      arguments: '/install /quiet /norestart'
+      state: present

@@ -24,7 +24,7 @@ tasks:
       dest: "C:\\Tools\\PoloDB\\polodb-win32-x64.exe"
   - name: Create Windows directory symlink
     ansible.windows.win_shell: |
-      cmd /c mklink "C:\\Tools\\PoloDB\\polodb.exe" "polodb-win32-x64.exe"
+      cmd /c mklink "C:\\Tools\\PoloDB\\polodb.exe" "C:\\Tools\\PoloDB\\polodb-win32-x64.exe"
     args:
       creates: "C:\\Tools\\PoloDB\\polodb.exe"
   - name: Add to PATH

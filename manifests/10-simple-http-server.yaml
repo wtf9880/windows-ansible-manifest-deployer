@@ -11,9 +11,13 @@ source:
     include_prereleases: false
     cache_filename: simple-http-server.exe
 locked:
-  - version: v0.8.0
-    url: https://github.com/TheWaWaR/simple-http-server/releases/download/v0.8.0/x86_64-pc-windows-msvc-simple-http-server.exe
-    sha256: 6faac740df27e317125f562a4f5239fc2d95161aea995930929b1c895994aa9b
+  #- version: v0.8.0
+  #  url: https://github.com/TheWaWaR/simple-http-server/releases/download/v0.8.0/x86_64-pc-windows-msvc-simple-http-server.exe
+  #  sha256: 6faac740df27e317125f562a4f5239fc2d95161aea995930929b1c895994aa9b
+  #  cache_filename: simple-http-server.exe
+  - version: v0.8.2
+    url: https://github.com/wtf9880/simple-http-server/releases/download/v0.8.2/simple-http-server-x86_64-pc-windows-msvc.exe
+    sha256: de0e57982e1154f7bb6c9ba0aee0e408c75714706e49a8a267a93e28e5670cc3
     cache_filename: simple-http-server.exe
 tasks:
   - name: Create directory if it does not exist

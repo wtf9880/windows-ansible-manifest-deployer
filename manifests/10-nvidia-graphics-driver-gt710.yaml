@@ -1,0 +1,45 @@
+schema: 1
+name: NvidiaGraphicsDriverGT710
+enabled: false
+source:
+  - kind: static_file
+    url: file://../Cache/384.76-desktop-win10-64bit-GT710.exe
+    sha256: SKIP
+    cache_filename: 384.76-desktop-win10-64bit-GT710.exe
+locked:
+  - version: static_file
+    url: file://../Cache/384.76-desktop-win10-64bit-GT710.exe
+    sha256: 0ce3cb326ccc1571ed7ca5cb6bf6a5d4cf95cc27158b15789463cd5d61f5ff02
+    cache_filename: 384.76-desktop-win10-64bit-GT710.exe
+tasks:
+  # https://www.intel.com/content/www/us/en/support/articles/000090440/graphics.html
+  # https://github.com/bcurran3/ChocolateyPackages/blob/main/intel-11th-14th-gen-processor-graphics/tools/ChocolateyInstall.ps1
+  # https://github.com/BeetMan/gpu-driver-downloader/blob/master/download_gpu_drivers.ps1
+  # https://github.com/supermarsx/autoderiva
+  # https://www.intel.com/content/www/us/en/download/776137/intel-7th-10th-gen-processor-graphics-windows.html
+  # not tested yet
+  - name: Stage pinned artifacts on the target
+    ansible.windows.win_copy:
+      src: "{{ local_cache }}/384.76-desktop-win10-64bit-GT710.exe"
+      dest: "{{ remote_cache }}\\384.76-desktop-win10-64bit-GT710.exe"
+    register: copy_nvidiagpudriver_result
+  - name: Install NVIDIA driver (silent, no auto-reboot)
+    ansible.windows.win_package:
+      path: "{{ remote_cache }}\\384.76-desktop-win10-64bit-GT710.exe"
+      arguments: "-s -n -clean"
+      # 1 == success, reboot required:
+      expected_return_code: [0, 1]
+      # SFX spawns setup.exe as a child:
+      wait_for_children: true
+      # Optionally verify signature
+      #verify_signature: true
+    register: install_nvidiagpudriver_result
+  #- name: Install
+  #  ansible.windows.win_package:
+  #    path: "{{ remote_cache }}\\gfx_win.exe"
+  #    arguments: "--overwrite --silent"
+  #    state: present
+  #    # Intel(R) HD Graphics Control Panel Service:
+  #    #creates_service: "igfxCUIService2.0.0.0"
+  #    # Intel(R) Content Protection HDCP Service:
+  #    creates_service: "cplspcon"
